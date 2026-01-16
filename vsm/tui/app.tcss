@@ -187,6 +187,10 @@ ConfigScreen {
 }
 
 /* General button styling */
+Button {
+    width: auto;
+}
+
 Button.primary {
     background: $primary;
 }
