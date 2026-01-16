@@ -1,0 +1,7 @@
+VintagestoryServer.dll process found ... executing command
+15.1.2026 23:20:32 [Notification] Handling Console Command /list clients
+15.1.2026 23:20:32 [Notification] List of online Players
+[9] BigDawg13 73.11.178.255:53481
+[11] JohnVS 72.25.133.214:52865
+[12] Tomoof 71.59.235.217:56270
+
