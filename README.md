@@ -49,6 +49,33 @@ A Python CLI for managing a Vintage Story dedicated server.
 2. After a server backup completes, clear the world backups and logs folders to avoid duplicate data
 3. **Skip the world backup** when a server backup is scheduled for the same hour
 
+### Backup Announcements
+
+Server announcements are broadcast to all players before backups begin, giving them advance notice that the server will be going offline.
+
+**Announcement Schedule:**
+
+| Minutes Before | Message |
+|----------------|---------|
+| 30 | Server going offline for backup in 30 minutes (estimated downtime: X minutes) |
+| 15 | Server going offline for backup in 15 minutes (estimated downtime: X minutes) |
+| 10 | Server going offline for backup in 10 minutes (estimated downtime: X minutes) |
+| 5 | Server going offline for backup in 5 minutes (estimated downtime: X minutes) |
+| 2 | Server going offline for backup in 2 minutes (estimated downtime: X minutes) |
+| 1 | Server going offline for backup in 1 minute (estimated downtime: X minutes) |
+
+Announcements use the server's `announce` command and only trigger when players are online.
+
+### Downtime Tracking
+
+The estimated downtime displayed in announcements is calculated by tracking each backup cycle:
+
+1. Record timestamp when the `stop` command starts
+2. Record timestamp when the `start` command finishes (server fully online)
+3. Store the duration for future estimates
+
+The most recent downtime duration is used for the estimate. If no previous backup has been tracked, the estimate is omitted from announcements.
+
 ---
 
 ## Log Viewer
