@@ -6,7 +6,7 @@ This project is a Terminal User Interface (TUI) application for managing a Vinta
 
 The application provides a tab-based interface for:
 *   **Server Status:** Viewing server status (online/offline), version, uptime, and player count.
-*   **Server Control:** Starting, stopping, and restarting the server.
+*   **Server Control:** Starting, stopping, and restarting the server, with accurate status updates.
 *   **Log Viewing:** Real-time log monitoring with filtering.
 *   **Backup Management:** Creating world and server backups.
 *   **Task Scheduling:** Automating backups and server announcements.
