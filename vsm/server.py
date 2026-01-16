@@ -51,9 +51,7 @@ def stop(config: dict | None = None) -> str:
 
 def restart(config: dict | None = None) -> str:
     """Restart the server (stop then start)."""
-    stop_output = stop(config)
-    start_output = start(config)
-    return f"{stop_output}\n{start_output}"
+    return _run_server_command(["restart"], config)
 
 
 def status(config: dict | None = None) -> ServerStatus:
