@@ -34,7 +34,7 @@ class LogsTab(Container):
         """Create the logs tab layout."""
         with Horizontal(id="log-controls"):
             yield Select(
-                [],
+                [("Loading...", None)],
                 value=None,
                 id="log-select",
                 allow_blank=False,
