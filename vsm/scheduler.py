@@ -1,12 +1,11 @@
 """Backup scheduling with announcements for Vintage Story Server Manager."""
 
-import signal
-import sys
 from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any
 
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from rich.console import Console
 
 from .backup import (
     cleanup_after_server_backup,
@@ -22,209 +21,286 @@ from .downtime import (
 )
 from .server import announce, get_players, start, stop
 
-console = Console()
-
 # Announcement intervals in minutes before backup
 ANNOUNCEMENT_INTERVALS = [30, 15, 10, 5, 2, 1]
 
 
-def _should_announce(config: dict) -> bool:
-    """Check if we should announce (only when players are online)."""
-    try:
-        players = get_players(config)
-        return players > 0
-    except Exception:
-        return False
+class SchedulerState(Enum):
+    """Scheduler state enum."""
+    STOPPED = "stopped"
+    RUNNING = "running"
+    PAUSED = "paused"
 
 
-def _send_announcement(minutes: int, config: dict) -> None:
-    """Send a backup announcement to players."""
-    if not _should_announce(config):
-        return
+class VSMScheduler:
+    """Background scheduler for VSM backups."""
 
-    downtime_estimate = format_downtime_estimate(config)
-    if minutes == 1:
-        message = f"Server going offline for backup in 1 minute {downtime_estimate}".strip()
-    else:
-        message = f"Server going offline for backup in {minutes} minutes {downtime_estimate}".strip()
+    _instance: "VSMScheduler | None" = None
 
-    try:
-        announce(message, config)
-        console.print(f"[yellow]Announced:[/yellow] {message}")
-    except Exception as e:
-        console.print(f"[red]Failed to announce:[/red] {e}")
+    def __init__(self) -> None:
+        self._scheduler: BackgroundScheduler | None = None
+        self._config: dict | None = None
+        self._log_callback: Any = None
 
+    @classmethod
+    def get_instance(cls) -> "VSMScheduler":
+        """Get the singleton scheduler instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
-def _run_world_backup(config: dict) -> None:
-    """Run a world backup."""
-    console.print(f"[cyan]{datetime.now()}[/cyan] Running world backup...")
+    def set_log_callback(self, callback: Any) -> None:
+        """Set a callback for log messages."""
+        self._log_callback = callback
 
-    try:
-        result = world_backup(config)
-        console.print(f"[green]World backup complete[/green]")
-        if result:
-            console.print(result)
-    except Exception as e:
-        console.print(f"[red]World backup failed:[/red] {e}")
+    def _log(self, message: str) -> None:
+        """Log a message."""
+        if self._log_callback:
+            self._log_callback(message)
 
+    def get_state(self) -> SchedulerState:
+        """Get the current scheduler state."""
+        if self._scheduler is None:
+            return SchedulerState.STOPPED
+        if self._scheduler.running:
+            return SchedulerState.RUNNING
+        return SchedulerState.STOPPED
 
-def _run_server_backup(config: dict) -> None:
-    """Run a full server backup cycle with stop/start."""
-    console.print(f"[cyan]{datetime.now()}[/cyan] Starting server backup cycle...")
+    def get_jobs(self) -> list[dict]:
+        """Get list of scheduled jobs."""
+        if self._scheduler is None:
+            return []
 
-    try:
-        # Record stop time and stop server
-        record_stop_time(config)
-        console.print("[yellow]Stopping server...[/yellow]")
-        stop(config)
+        jobs = []
+        for job in self._scheduler.get_jobs():
+            job_info = {
+                "id": job.id,
+                "name": job.name,
+                "next_run_time": job.next_run_time,
+            }
+            # Get trigger info
+            if hasattr(job.trigger, "__str__"):
+                job_info["trigger"] = str(job.trigger)
+            else:
+                job_info["trigger"] = "unknown"
+            jobs.append(job_info)
+        return jobs
 
-        # Create backup
-        console.print("[yellow]Creating server backup...[/yellow]")
-        result = server_backup(config)
-        console.print(f"[green]{result}[/green]")
+    def start(self, config: dict | None = None) -> None:
+        """Start the scheduler with backup jobs."""
+        if self._scheduler is not None and self._scheduler.running:
+            return
 
-        # Cleanup
-        console.print("[yellow]Cleaning up old data...[/yellow]")
-        cleanup_result = cleanup_after_server_backup(config)
-        if cleanup_result:
-            console.print(cleanup_result)
+        if config is None:
+            config = load_config()
+        self._config = config
 
-        # Prune old backups
-        prune_result = prune_old_backups(config)
-        console.print(prune_result)
+        self._scheduler = BackgroundScheduler()
 
-        # Restart server
-        console.print("[yellow]Starting server...[/yellow]")
-        start(config)
-        record_start_time(config)
+        world_interval = config.get("world_backup_interval", 1)
+        server_interval = config.get("server_backup_interval", 6)
 
-        console.print("[green]Server backup cycle complete[/green]")
+        # Schedule world backups (every N hours at :00)
+        self._scheduler.add_job(
+            self._world_backup_job,
+            CronTrigger(hour=f"*/{world_interval}", minute=0),
+            id="world_backup",
+            name="World Backup",
+        )
 
-    except Exception as e:
-        console.print(f"[red]Server backup failed:[/red] {e}")
-        # Try to ensure server is running
+        # Schedule server backups (every N hours at :00)
+        self._scheduler.add_job(
+            self._run_server_backup,
+            CronTrigger(hour=f"*/{server_interval}", minute=0),
+            id="server_backup",
+            name="Server Backup",
+        )
+
+        # Schedule announcements
+        self._schedule_next_announcements()
+
+        # Re-schedule announcements after each server backup
+        self._scheduler.add_job(
+            self._schedule_next_announcements,
+            CronTrigger(hour=f"*/{server_interval}", minute=1),
+            id="reschedule_announcements",
+            name="Reschedule Announcements",
+        )
+
+        self._scheduler.start()
+        self._log("Scheduler started")
+
+    def stop(self) -> None:
+        """Stop the scheduler."""
+        if self._scheduler is not None:
+            self._scheduler.shutdown(wait=False)
+            self._scheduler = None
+            self._log("Scheduler stopped")
+
+    def _should_announce(self) -> bool:
+        """Check if we should announce (only when players are online)."""
         try:
-            console.print("[yellow]Attempting to restart server...[/yellow]")
-            start(config)
+            players = get_players(self._config)
+            return players > 0
         except Exception:
-            pass
+            return False
 
+    def _send_announcement(self, minutes: int) -> None:
+        """Send a backup announcement to players."""
+        if not self._should_announce():
+            return
 
-def _schedule_announcements(
-    scheduler: BlockingScheduler,
-    backup_time: datetime,
-    config: dict,
-) -> None:
-    """Schedule announcements before a backup."""
-    now = datetime.now()
+        downtime_estimate = format_downtime_estimate(self._config)
+        if minutes == 1:
+            message = f"Server going offline for backup in 1 minute {downtime_estimate}".strip()
+        else:
+            message = f"Server going offline for backup in {minutes} minutes {downtime_estimate}".strip()
 
-    for minutes in ANNOUNCEMENT_INTERVALS:
-        announce_time = backup_time - timedelta(minutes=minutes)
+        try:
+            announce(message, self._config)
+            self._log(f"Announced: {message}")
+        except Exception as e:
+            self._log(f"Failed to announce: {e}")
 
-        # Only schedule future announcements
-        if announce_time > now:
-            scheduler.add_job(
-                _send_announcement,
-                "date",
-                run_date=announce_time,
-                args=[minutes, config],
+    def _world_backup_job(self) -> None:
+        """World backup job that skips when server backup is in same hour."""
+        current_hour = datetime.now().hour
+        server_interval = self._config.get("server_backup_interval", 6) if self._config else 6
+
+        if current_hour % server_interval == 0:
+            self._log("Skipping world backup (server backup scheduled this hour)")
+            return
+
+        self._run_world_backup()
+
+    def _run_world_backup(self) -> None:
+        """Run a world backup."""
+        self._log(f"{datetime.now()} Running world backup...")
+
+        try:
+            result = world_backup(self._config)
+            self._log("World backup complete")
+        except Exception as e:
+            self._log(f"World backup failed: {e}")
+
+    def _run_server_backup(self) -> None:
+        """Run a full server backup cycle with stop/start."""
+        self._log(f"{datetime.now()} Starting server backup cycle...")
+
+        try:
+            # Record stop time and stop server
+            record_stop_time(self._config)
+            self._log("Stopping server...")
+            stop(self._config)
+
+            # Create backup
+            self._log("Creating server backup...")
+            result = server_backup(self._config)
+            self._log(result)
+
+            # Cleanup
+            self._log("Cleaning up old data...")
+            cleanup_result = cleanup_after_server_backup(self._config)
+            if cleanup_result:
+                self._log(cleanup_result)
+
+            # Prune old backups
+            prune_result = prune_old_backups(self._config)
+            self._log(prune_result)
+
+            # Restart server
+            self._log("Starting server...")
+            start(self._config)
+            record_start_time(self._config)
+
+            self._log("Server backup cycle complete")
+
+        except Exception as e:
+            self._log(f"Server backup failed: {e}")
+            # Try to ensure server is running
+            try:
+                self._log("Attempting to restart server...")
+                start(self._config)
+            except Exception:
+                pass
+
+    def _schedule_next_announcements(self) -> None:
+        """Schedule announcements before the next server backup."""
+        if self._scheduler is None or self._config is None:
+            return
+
+        server_interval = self._config.get("server_backup_interval", 6)
+        now = datetime.now()
+
+        # Calculate next server backup time
+        current_hour = now.hour
+        next_backup_hour = ((current_hour // server_interval + 1) * server_interval) % 24
+
+        if next_backup_hour <= current_hour:
+            next_backup = now.replace(
+                hour=next_backup_hour, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
+        else:
+            next_backup = now.replace(
+                hour=next_backup_hour, minute=0, second=0, microsecond=0
             )
 
+        # Remove old announcement jobs
+        for job in self._scheduler.get_jobs():
+            if job.id.startswith("announce_"):
+                job.remove()
 
-def _is_server_backup_hour(hour: int, config: dict) -> bool:
-    """Check if a given hour is a server backup hour."""
-    server_interval = config.get("server_backup_interval", 6)
-    return hour % server_interval == 0
+        # Schedule new announcements
+        for minutes in ANNOUNCEMENT_INTERVALS:
+            announce_time = next_backup - timedelta(minutes=minutes)
+            if announce_time > now:
+                self._scheduler.add_job(
+                    self._send_announcement,
+                    "date",
+                    run_date=announce_time,
+                    args=[minutes],
+                    id=f"announce_{minutes}",
+                    name=f"Announce {minutes}m",
+                )
 
 
-def _world_backup_job(config: dict) -> None:
-    """World backup job that skips when server backup is in same hour."""
-    current_hour = datetime.now().hour
-
-    if _is_server_backup_hour(current_hour, config):
-        console.print(
-            f"[dim]{datetime.now()} Skipping world backup (server backup scheduled this hour)[/dim]"
-        )
-        return
-
-    _run_world_backup(config)
+def get_scheduler() -> VSMScheduler:
+    """Get the global scheduler instance."""
+    return VSMScheduler.get_instance()
 
 
+# Legacy function for CLI compatibility
 def run_scheduler() -> None:
-    """Run the backup scheduler daemon."""
-    config = load_config()
-    scheduler = BlockingScheduler()
+    """Run the backup scheduler (blocking mode for CLI)."""
+    import signal
+    import sys
+    from rich.console import Console
 
-    world_interval = config.get("world_backup_interval", 1)
-    server_interval = config.get("server_backup_interval", 6)
+    console = Console()
+    config = load_config()
+
+    scheduler = get_scheduler()
+    scheduler.set_log_callback(lambda msg: console.print(msg))
 
     console.print("[bold]Vintage Story Backup Scheduler[/bold]")
-    console.print(f"World backup interval: every {world_interval} hour(s)")
-    console.print(f"Server backup interval: every {server_interval} hour(s)")
+    console.print(f"World backup interval: every {config.get('world_backup_interval', 1)} hour(s)")
+    console.print(f"Server backup interval: every {config.get('server_backup_interval', 6)} hour(s)")
     console.print("Press Ctrl+C to stop\n")
 
-    # Schedule world backups (every N hours at :00)
-    scheduler.add_job(
-        _world_backup_job,
-        CronTrigger(hour=f"*/{world_interval}", minute=0),
-        args=[config],
-        id="world_backup",
-        name="World Backup",
-    )
+    scheduler.start(config)
 
-    # Schedule server backups (every N hours at :00)
-    scheduler.add_job(
-        _run_server_backup,
-        CronTrigger(hour=f"*/{server_interval}", minute=0),
-        args=[config],
-        id="server_backup",
-        name="Server Backup",
-    )
-
-    # Calculate next server backup time and schedule announcements
-    now = datetime.now()
-    current_hour = now.hour
-    next_server_backup_hour = (
-        (current_hour // server_interval + 1) * server_interval
-    ) % 24
-
-    if next_server_backup_hour <= current_hour:
-        # Next backup is tomorrow
-        next_backup = now.replace(
-            hour=next_server_backup_hour, minute=0, second=0, microsecond=0
-        ) + timedelta(days=1)
-    else:
-        next_backup = now.replace(
-            hour=next_server_backup_hour, minute=0, second=0, microsecond=0
-        )
-
-    _schedule_announcements(scheduler, next_backup, config)
-
-    # Re-schedule announcements after each server backup
-    def schedule_next_announcements():
-        now = datetime.now()
-        next_backup = now.replace(minute=0, second=0, microsecond=0) + timedelta(
-            hours=server_interval
-        )
-        _schedule_announcements(scheduler, next_backup, config)
-
-    scheduler.add_job(
-        schedule_next_announcements,
-        CronTrigger(hour=f"*/{server_interval}", minute=1),
-        id="reschedule_announcements",
-        name="Reschedule Announcements",
-    )
-
-    # Handle graceful shutdown
     def shutdown(signum, frame):
         console.print("\n[yellow]Shutting down scheduler...[/yellow]")
-        scheduler.shutdown(wait=False)
+        scheduler.stop()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
     try:
-        scheduler.start()
+        # Keep main thread alive
+        import time
+        while True:
+            time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
-        pass
+        scheduler.stop()

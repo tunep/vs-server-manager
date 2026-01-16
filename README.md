@@ -1,15 +1,17 @@
 # Vintage Story Server Manager
 
-A Python CLI for managing a Vintage Story dedicated server.
+A Python TUI for managing a Vintage Story dedicated server.
 
 > **Platform Support:** Currently Linux only. Designed for easy Windows support in the future.
 
 ## Features
 
+- **Dashboard TUI** - Tab-based interface for all server management
 - **Server Control** - Start, stop, restart, and check status
+- **Live Logs** - Real-time log viewer with filtering
 - **Backup Management** - Automated world and full server backups
-- **Log Viewer** - Tail live logs or browse archived logs
-- **Configuration** - Editable settings via `config.json`
+- **Scheduler** - Background backup scheduling with player announcements
+- **Server Console** - Send commands directly to the server
 
 ---
 
@@ -25,51 +27,48 @@ cd vs-server-manager
 # Install in development mode
 pip install -e .
 
-# Verify installation
-vsm --help
+# Launch the TUI
+vsm
 ```
 
 ---
 
-## CLI Usage
+## TUI Overview
+
+Launch with `vsm` to open the terminal user interface.
 
 ```
-vsm [command]
++------------------------------------------------------------------+
+|  Vintage Story Server Manager                              [v0.2] |
++------------------------------------------------------------------+
+|  Status | Logs | Backups | Scheduler | Console                   |
++------------------------------------------------------------------+
+|                                                                  |
+|  Tab content displayed here                                      |
+|                                                                  |
++------------------------------------------------------------------+
+|  q:Quit  c:Config  r:Refresh                                     |
++------------------------------------------------------------------+
 ```
 
-### Server Control
+### Tabs
 
-| Command | Description |
-|---------|-------------|
-| `vsm server-start` | Start the server |
-| `vsm server-stop` | Stop the server |
-| `vsm server-restart` | Restart the server |
-| `vsm server-status` | Show server status |
-| `vsm command "<cmd>"` | Send a command to the server console |
+| Tab | Description |
+|-----|-------------|
+| **Status** | Server status (running/stopped, version, uptime, players, memory) and Start/Stop/Restart buttons |
+| **Logs** | Live log viewer with file filter and pause/resume |
+| **Backups** | List of server backups with World Backup and Server Backup buttons |
+| **Scheduler** | Scheduler status, scheduled jobs, and Start/Stop controls |
+| **Console** | Send commands to the server and view output |
 
-### Backup Management
+### Key Bindings
 
-| Command | Description |
-|---------|-------------|
-| `vsm backup world` | Create a world backup (uses server's `genbackup`) |
-| `vsm backup server` | Create a full server backup (archives data directory) |
-| `vsm backup list` | List all server backups |
-| `vsm backup start` | Start the backup scheduler daemon |
-
-### Log Viewer
-
-| Command | Description |
-|---------|-------------|
-| `vsm logs live` | Tail live log files (Ctrl+C to stop) |
-| `vsm logs archive` | Browse and view archived logs |
-
-### Configuration
-
-| Command | Description |
-|---------|-------------|
-| `vsm config show` | Display current configuration |
-| `vsm config edit` | Open config file in `$EDITOR` |
-| `vsm config path` | Show config file location |
+| Key | Action |
+|-----|--------|
+| `q` | Quit |
+| `c` | Open config viewer |
+| `r` | Refresh current tab |
+| `1-5` | Switch to tab (Status, Logs, Backups, Scheduler, Console) |
 
 ---
 
@@ -77,52 +76,44 @@ vsm [command]
 
 ### Types of Backups
 
-| Type | Method | Location | Default Interval | Max Count |
-|------|--------|----------|------------------|-----------|
-| **World** | Server's `genbackup` command | `{data_path}/Backups` | Hourly | N/A |
-| **Server** | Script archives entire data folder | `{server_path}/backups` | Every 6 hours | 7 |
+| Type | Method | Location | Default Interval |
+|------|--------|----------|------------------|
+| **World** | Server's `genbackup` command | `{data_path}/Backups` | Hourly |
+| **Server** | Archives entire data folder | `{server_path}/backups` | Every 6 hours |
 
 ### Backup Behavior
 
 1. **Server backups** archive `{data_path}` (includes world backups and logs)
-2. After a server backup completes, clear the world backups and logs folders to avoid duplicate data
-3. **Skip the world backup** when a server backup is scheduled for the same hour
+2. After a server backup completes, clears world backups and logs to avoid duplicate data
+3. **Skips world backup** when a server backup is scheduled for the same hour
+4. Old server backups are pruned (default: keep 7)
 
-### Backup Scheduler
+### Scheduler
 
-Run `vsm backup start` to start the backup scheduler daemon. This runs in the foreground and:
+Start the scheduler from the **Scheduler** tab. It runs in the background and:
 
 - Schedules world backups at the configured interval
 - Schedules server backups at the configured interval
 - Announces upcoming server backups to online players
 - Tracks downtime for accurate estimates
 
-Press Ctrl+C to stop the scheduler.
-
 ### Backup Announcements
 
-Announcements are broadcast to all players before server backups, giving advance notice that the server will go offline.
+Announcements are broadcast to players before server backups:
 
 | Minutes Before | Message |
 |----------------|---------|
-| 30 | Server going offline for backup in 30 minutes (estimated downtime: X minutes) |
-| 15 | Server going offline for backup in 15 minutes (estimated downtime: X minutes) |
-| 10 | Server going offline for backup in 10 minutes (estimated downtime: X minutes) |
-| 5 | Server going offline for backup in 5 minutes (estimated downtime: X minutes) |
-| 2 | Server going offline for backup in 2 minutes (estimated downtime: X minutes) |
-| 1 | Server going offline for backup in 1 minute (estimated downtime: X minutes) |
+| 30, 15, 10, 5, 2, 1 | Server going offline for backup in X minutes (estimated downtime: Y minutes) |
 
 Announcements only trigger when players are online.
 
 ### Downtime Tracking
 
-The estimated downtime is calculated by tracking each backup cycle:
+Estimated downtime is calculated from previous backup cycles:
 
-1. Record timestamp when the `stop` command starts
-2. Record timestamp when the `start` command finishes (server fully online)
-3. Store the duration for future estimates
-
-The most recent downtime duration is used. If no previous backup has been tracked, the estimate is omitted.
+1. Records timestamp when `stop` command starts
+2. Records timestamp when `start` command finishes
+3. Uses the duration for future estimates
 
 ---
 
@@ -144,33 +135,18 @@ Settings are stored in `config.json` (created automatically on first run).
 - Server executable: `{server_path}/server.sh`
 - Server backups: `{server_path}/backups`
 
----
-
-## Log Viewer
-
-**Log directory:** `{data_path}/Logs`
-
-### Live Logs
-- Follow active log files, streaming new entries as they're written
-- Press Ctrl+C to stop
-
-### Archived Logs
-- Browse by session: select a timestamped folder, then select a log file
-- View using a pager (scroll freely, search with `/`)
-- Located in `{data_path}/Logs/Archive/<timestamp>/`
-
-**Archive behavior:** When the server starts, previous logs are moved to a timestamped folder in `Archive/` by the server.
+Press `c` in the TUI to view current configuration.
 
 ---
 
-## Server Commands Reference
+## Server Commands
 
-These commands can be sent via `vsm command "<cmd>"`:
+Use the **Console** tab to send commands to the server:
 
 | Command | Description |
 |---------|-------------|
 | `announce <text>` | Broadcast message to all players |
-| `genbackup [filename]` | Create world backup (defaults to timestamp) |
+| `genbackup [filename]` | Create world backup |
 | `list clients` | Show online players |
 
 ---
@@ -182,5 +158,5 @@ These commands can be sent via `vsm command "<cmd>"`:
 - Default data path: `/var/vintagestory/data`
 
 ### Windows (Future)
-- Server executable: `{server_path}/VintagestoryServer.exe` (or wrapper script)
-- Default data path: `%AppData%/VintagestoryData` (typical location)
+- Server executable: `{server_path}/VintagestoryServer.exe`
+- Default data path: `%AppData%/VintagestoryData`

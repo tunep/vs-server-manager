@@ -1,0 +1,204 @@
+/* VSM TUI Stylesheet */
+
+Screen {
+    background: $surface;
+}
+
+/* Header styling */
+Header {
+    dock: top;
+}
+
+/* Footer styling */
+Footer {
+    dock: bottom;
+}
+
+/* Tab content area */
+TabbedContent {
+    height: 1fr;
+}
+
+TabPane {
+    padding: 1 2;
+}
+
+/* Status Tab */
+StatusTab {
+    layout: grid;
+    grid-size: 2;
+    grid-gutter: 1 2;
+}
+
+#status-panel {
+    height: auto;
+    border: solid $primary;
+    padding: 1 2;
+}
+
+#status-panel Static {
+    width: 100%;
+}
+
+#controls-panel {
+    height: auto;
+    border: solid $secondary;
+    padding: 1 2;
+}
+
+#controls-panel Horizontal {
+    height: auto;
+    align: center middle;
+}
+
+#controls-panel Button {
+    margin: 0 1;
+}
+
+.status-label {
+    color: $text-muted;
+}
+
+.status-value {
+    color: $text;
+}
+
+.status-running {
+    color: $success;
+}
+
+.status-stopped {
+    color: $error;
+}
+
+/* Logs Tab */
+LogsTab {
+    layout: vertical;
+}
+
+#log-viewer {
+    height: 1fr;
+    border: solid $primary;
+    scrollbar-gutter: stable;
+}
+
+#log-controls {
+    height: auto;
+    padding: 1 0;
+}
+
+/* Backups Tab */
+BackupsTab {
+    layout: vertical;
+}
+
+#backup-table {
+    height: 1fr;
+    border: solid $primary;
+}
+
+#backup-controls {
+    height: auto;
+    padding: 1 0;
+}
+
+#backup-controls Button {
+    margin: 0 1;
+}
+
+/* Scheduler Tab */
+SchedulerTab {
+    layout: vertical;
+}
+
+#scheduler-status {
+    height: auto;
+    border: solid $primary;
+    padding: 1 2;
+}
+
+#scheduler-jobs {
+    height: 1fr;
+    border: solid $secondary;
+    margin-top: 1;
+}
+
+#scheduler-controls {
+    height: auto;
+    padding: 1 0;
+}
+
+#scheduler-controls Button {
+    margin: 0 1;
+}
+
+/* Console Tab */
+ConsoleTab {
+    layout: vertical;
+}
+
+#console-output {
+    height: 1fr;
+    border: solid $primary;
+    scrollbar-gutter: stable;
+}
+
+#console-input-container {
+    height: auto;
+    layout: horizontal;
+    padding: 1 0;
+}
+
+#console-input {
+    width: 1fr;
+}
+
+#console-send {
+    width: auto;
+    margin-left: 1;
+}
+
+/* Config Screen */
+ConfigScreen {
+    align: center middle;
+}
+
+#config-dialog {
+    width: 60;
+    height: auto;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#config-dialog DataTable {
+    height: auto;
+    max-height: 20;
+}
+
+#config-buttons {
+    height: auto;
+    padding-top: 1;
+    align: center middle;
+}
+
+#config-buttons Button {
+    margin: 0 1;
+}
+
+/* General button styling */
+Button.primary {
+    background: $primary;
+}
+
+Button.success {
+    background: $success;
+}
+
+Button.warning {
+    background: $warning;
+}
+
+Button.error {
+    background: $error;
+}

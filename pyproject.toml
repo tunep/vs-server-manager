@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vs-server-manager"
-version = "0.1.0"
-description = "CLI tool for managing a Vintage Story dedicated server"
+version = "0.2.0"
+description = "TUI tool for managing a Vintage Story dedicated server"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
-keywords = ["vintage-story", "server", "backup", "cli"]
+keywords = ["vintage-story", "server", "backup", "tui"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -24,13 +24,13 @@ classifiers = [
     "Topic :: System :: Archiving :: Backup",
 ]
 dependencies = [
-    "click>=8.0",
     "apscheduler>=3.10",
     "rich>=13.0",
+    "textual>=0.50.0",
 ]
 
 [project.scripts]
-vsm = "vsm.cli:main"
+vsm = "vsm.tui:main"
 
 [project.optional-dependencies]
 dev = [
