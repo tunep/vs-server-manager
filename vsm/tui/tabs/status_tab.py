@@ -120,7 +120,6 @@ class StatusTab(Container):
             btn_restart.display = True
         elif self._starting or (s and s.running and not fully_running):
             # Server is starting up
-            self._starting = True
             self.query_one("#status-running", Static).update(
                 "Status: [yellow]Starting[/yellow]"
             )
