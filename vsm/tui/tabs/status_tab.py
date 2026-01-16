@@ -59,6 +59,10 @@ class StatusTab(Container):
             return
 
         s = self._status
+        btn_start = self.query_one("#btn-start", Button)
+        btn_stop = self.query_one("#btn-stop", Button)
+        btn_restart = self.query_one("#btn-restart", Button)
+
         if s.running:
             self.query_one("#status-running", Static).update(
                 "Status: [green]Running[/green]"
@@ -78,6 +82,10 @@ class StatusTab(Container):
                 )
             else:
                 self.query_one("#status-memory", Static).update("Memory: --")
+            # Server is running: show Stop and Restart, hide Start
+            btn_start.display = False
+            btn_stop.display = True
+            btn_restart.display = True
         else:
             self.query_one("#status-running", Static).update(
                 "Status: [red]Stopped[/red]"
@@ -86,6 +94,10 @@ class StatusTab(Container):
             self.query_one("#status-uptime", Static).update("Uptime: --")
             self.query_one("#status-players", Static).update("Players: --")
             self.query_one("#status-memory", Static).update("Memory: --")
+            # Server is stopped: show Start, hide Stop and Restart
+            btn_start.display = True
+            btn_stop.display = False
+            btn_restart.display = False
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle control button presses."""
