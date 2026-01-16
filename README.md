@@ -10,27 +10,66 @@ A Python CLI for managing a Vintage Story dedicated server.
 - **Backup Management** - Automated world and full server backups
 - **Log Viewer** - Tail live logs or browse archived logs
 - **Configuration** - Editable settings via `config.json`
-- **Player Management** - *(WIP)*
-- **Server Config Editor** - *(WIP)*
 
 ---
 
-## Server Control
+## Installation
 
-**Executable:** `{server_path}/server.sh`
+Requires Python 3.10+
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/vintage-story-backup.git
+cd vintage-story-backup
+
+# Install in development mode
+pip install -e .
+
+# Verify installation
+vsm --help
+```
+
+---
+
+## CLI Usage
+
+```
+vsm [command]
+```
+
+### Server Control
 
 | Command | Description |
 |---------|-------------|
-| `start` | Start the server |
-| `stop` | Stop the server |
-| `restart` | Restart the server |
-| `status` | Check if server is running (see example outputs) |
-| `command "<cmd>"` | Send a command to the server console |
+| `vsm server-start` | Start the server |
+| `vsm server-stop` | Stop the server |
+| `vsm server-restart` | Restart the server |
+| `vsm server-status` | Show server status |
+| `vsm command "<cmd>"` | Send a command to the server console |
 
-**Useful server commands:**
-- `announce <text>` - Broadcast message to all players
-- `genbackup [filename]` - Create world backup (defaults to timestamp)
-- `list clients` - Show online players (see example output)
+### Backup Management
+
+| Command | Description |
+|---------|-------------|
+| `vsm backup world` | Create a world backup (uses server's `genbackup`) |
+| `vsm backup server` | Create a full server backup (archives data directory) |
+| `vsm backup list` | List all server backups |
+| `vsm backup start` | Start the backup scheduler daemon |
+
+### Log Viewer
+
+| Command | Description |
+|---------|-------------|
+| `vsm logs live` | Tail live log files (Ctrl+C to stop) |
+| `vsm logs archive` | Browse and view archived logs |
+
+### Configuration
+
+| Command | Description |
+|---------|-------------|
+| `vsm config show` | Display current configuration |
+| `vsm config edit` | Open config file in `$EDITOR` |
+| `vsm config path` | Show config file location |
 
 ---
 
@@ -49,11 +88,20 @@ A Python CLI for managing a Vintage Story dedicated server.
 2. After a server backup completes, clear the world backups and logs folders to avoid duplicate data
 3. **Skip the world backup** when a server backup is scheduled for the same hour
 
+### Backup Scheduler
+
+Run `vsm backup start` to start the backup scheduler daemon. This runs in the foreground and:
+
+- Schedules world backups at the configured interval
+- Schedules server backups at the configured interval
+- Announces upcoming server backups to online players
+- Tracks downtime for accurate estimates
+
+Press Ctrl+C to stop the scheduler.
+
 ### Backup Announcements
 
-Server announcements are broadcast to all players before backups begin, giving them advance notice that the server will be going offline.
-
-**Announcement Schedule:**
+Announcements are broadcast to all players before server backups, giving advance notice that the server will go offline.
 
 | Minutes Before | Message |
 |----------------|---------|
@@ -64,38 +112,23 @@ Server announcements are broadcast to all players before backups begin, giving t
 | 2 | Server going offline for backup in 2 minutes (estimated downtime: X minutes) |
 | 1 | Server going offline for backup in 1 minute (estimated downtime: X minutes) |
 
-Announcements use the server's `announce` command and only trigger when players are online.
+Announcements only trigger when players are online.
 
 ### Downtime Tracking
 
-The estimated downtime displayed in announcements is calculated by tracking each backup cycle:
+The estimated downtime is calculated by tracking each backup cycle:
 
 1. Record timestamp when the `stop` command starts
 2. Record timestamp when the `start` command finishes (server fully online)
 3. Store the duration for future estimates
 
-The most recent downtime duration is used for the estimate. If no previous backup has been tracked, the estimate is omitted from announcements.
+The most recent downtime duration is used. If no previous backup has been tracked, the estimate is omitted.
 
 ---
 
-## Log Viewer
+## Configuration
 
-**Log directory:** `{data_path}/Logs`
-
-### Live Logs
-- Follow active log files, streaming new entries as they're written
-- Press `q` or `Ctrl+C` to stop
-
-### Archived Logs
-- Browse by session: select a timestamped folder, then select a log file
-- View using a pager (scroll freely, search with `/`)
-- Located in `{data_path}/Logs/Archive/<timestamp>/`
-
-**Archive behavior:** When the server starts, previous logs are moved to a timestamped folder in `Archive/` by the server.
-
----
-
-## Configuration (`config.json`)
+Settings are stored in `config.json` (created automatically on first run).
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -110,6 +143,35 @@ The most recent downtime duration is used for the estimate. If no previous backu
 - World backups: `{data_path}/Backups`
 - Server executable: `{server_path}/server.sh`
 - Server backups: `{server_path}/backups`
+
+---
+
+## Log Viewer
+
+**Log directory:** `{data_path}/Logs`
+
+### Live Logs
+- Follow active log files, streaming new entries as they're written
+- Press Ctrl+C to stop
+
+### Archived Logs
+- Browse by session: select a timestamped folder, then select a log file
+- View using a pager (scroll freely, search with `/`)
+- Located in `{data_path}/Logs/Archive/<timestamp>/`
+
+**Archive behavior:** When the server starts, previous logs are moved to a timestamped folder in `Archive/` by the server.
+
+---
+
+## Server Commands Reference
+
+These commands can be sent via `vsm command "<cmd>"`:
+
+| Command | Description |
+|---------|-------------|
+| `announce <text>` | Broadcast message to all players |
+| `genbackup [filename]` | Create world backup (defaults to timestamp) |
+| `list clients` | Show online players |
 
 ---
 
