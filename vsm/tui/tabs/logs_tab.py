@@ -92,8 +92,8 @@ class LogsTab(Container):
         log_viewer = self.query_one("#log-viewer", RichLog)
 
         for log_file in self._log_files:
-        # Skip if not the selected file
-        if selected is None or str(log_file) != selected:
+            # Skip if not the selected file
+            if selected is None or str(log_file) != selected:
                 continue
 
             if not log_file.exists():
