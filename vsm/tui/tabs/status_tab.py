@@ -160,10 +160,10 @@ class StatusTab(Container):
                 await run_blocking(start, config)
                 self.notify("Server start command sent", severity="information")
             except Exception as e:
-                self._starting = False
                 self.notify(f"Failed to start: {e}", severity="error")
             finally:
-                self.set_timer(2, self.refresh_status)
+                self._starting = False
+                self.refresh_status()
 
         elif button_id == "btn-stop":
             self._stopping = True
@@ -173,10 +173,10 @@ class StatusTab(Container):
                 await run_blocking(stop, config)
                 self.notify("Server stop command sent", severity="information")
             except Exception as e:
-                self._stopping = False
                 self.notify(f"Failed to stop: {e}", severity="error")
             finally:
-                self.set_timer(2, self.refresh_status)
+                self._stopping = False
+                self.refresh_status()
 
         elif button_id == "btn-restart":
             self._restarting = True
@@ -190,7 +190,8 @@ class StatusTab(Container):
             finally:
                 self._restarting = False
                 self._starting = True  # Assume it's starting up after a restart
-                self.set_timer(2, self.refresh_status)
+                self.refresh_status()
+
 
 
     def on_key(self, event: Key) -> None:
