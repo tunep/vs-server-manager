@@ -21,7 +21,7 @@ Requires Python 3.10+
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vs-server-manager.git
+git clone https://github.com/tunep/vs-server-manager.git
 cd vs-server-manager
 
 # Install in development mode
