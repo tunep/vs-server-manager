@@ -20,12 +20,16 @@ class VSMApp(App):
         Binding("q", "quit", "Quit"),
         Binding("c", "show_config", "Config"),
         Binding("r", "refresh", "Refresh"),
+        Binding("tab", "next_tab", "Next Tab"),
+        Binding("shift+tab", "prev_tab", "Prev Tab"),
         Binding("1", "switch_tab('status')", "Status", show=False),
         Binding("2", "switch_tab('logs')", "Logs", show=False),
         Binding("3", "switch_tab('backups')", "Backups", show=False),
         Binding("4", "switch_tab('scheduler')", "Scheduler", show=False),
         Binding("5", "switch_tab('console')", "Console", show=False),
     ]
+
+    TAB_ORDER = ["status", "logs", "backups", "scheduler", "console"]
 
     def compose(self) -> ComposeResult:
         """Create the application layout."""
@@ -64,3 +68,19 @@ class VSMApp(App):
         """Switch to a specific tab."""
         tabs = self.query_one(TabbedContent)
         tabs.active = tab_id
+
+    def action_next_tab(self) -> None:
+        """Switch to the next tab."""
+        tabs = self.query_one(TabbedContent)
+        current = tabs.active
+        if current in self.TAB_ORDER:
+            idx = (self.TAB_ORDER.index(current) + 1) % len(self.TAB_ORDER)
+            tabs.active = self.TAB_ORDER[idx]
+
+    def action_prev_tab(self) -> None:
+        """Switch to the previous tab."""
+        tabs = self.query_one(TabbedContent)
+        current = tabs.active
+        if current in self.TAB_ORDER:
+            idx = (self.TAB_ORDER.index(current) - 1) % len(self.TAB_ORDER)
+            tabs.active = self.TAB_ORDER[idx]
