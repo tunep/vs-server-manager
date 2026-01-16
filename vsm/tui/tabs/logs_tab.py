@@ -15,7 +15,7 @@ def _get_active_log_files(logs_path: Path) -> list[Path]:
     if not logs_path.exists():
         return []
     return sorted(
-        [f for f in logs_path.iterdir() if f.is_file() and f.suffix == ".txt"],
+        [f for f in logs_path.iterdir() if f.is_file() and f.suffix == ".log"],
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
