@@ -26,7 +26,7 @@ TabPane {
 /* Status Tab */
 StatusTab {
     layout: grid;
-    grid-size: 2;
+    grid-columns: 1fr auto;
     grid-gutter: 1 2;
 }
 
