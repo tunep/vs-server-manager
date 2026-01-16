@@ -1,0 +1,7 @@
+{
+  "data_path": "/var/vintagestory/data",
+  "server_path": "~/server",
+  "world_backup_interval": 1,
+  "server_backup_interval": 6,
+  "max_server_backups": 7
+}

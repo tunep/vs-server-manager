@@ -30,7 +30,7 @@ A Python CLI for managing a Vintage Story dedicated server.
 **Useful server commands:**
 - `announce <text>` - Broadcast message to all players
 - `genbackup [filename]` - Create world backup (defaults to timestamp)
-- `list clients` - Show online players
+- `list clients` - Show online players (see example output)
 
 ---
 
@@ -91,7 +91,7 @@ The most recent downtime duration is used for the estimate. If no previous backu
 - View using a pager (scroll freely, search with `/`)
 - Located in `{data_path}/Logs/Archive/<timestamp>/`
 
-**Archive behavior:** When the server starts, previous logs are moved to a timestamped folder in `Archive/`.
+**Archive behavior:** When the server starts, previous logs are moved to a timestamped folder in `Archive/` by the server.
 
 ---
 
