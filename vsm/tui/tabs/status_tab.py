@@ -189,7 +189,6 @@ class StatusTab(Container):
                 self.notify(f"Failed to restart: {e}", severity="error")
             finally:
                 self._restarting = False
-                self._starting = True  # Assume it's starting up after a restart
                 self.refresh_status()
 
 
