@@ -10,19 +10,7 @@ from rich.prompt import Prompt
 
 from .config import get_logs_path, load_config
 
-
 console = Console()
-
-
-def _is_status_line(line: str) -> bool:
-    """Check if a line is part of a status update."""
-    return (
-        "Version:" in line
-        or "Uptime:" in line
-        or "Players online:" in line
-        or "Memory usage Managed/Total:" in line
-        or "is up and running" in line
-    )
 
 
 def _get_active_log_files(logs_path: Path) -> list[Path]:
@@ -77,11 +65,13 @@ def tail_live(config: dict | None = None) -> None:
     console.print(f"[bold]Tailing {len(log_files)} log file(s)[/bold]")
     console.print("Press Ctrl+C to stop\n")
 
-    # Track file positions
+    # Track file positions and state for each file
     file_positions: dict[Path, int] = {}
+    in_block_states: dict[Path, bool] = {}
 
     for log_file in log_files:
         file_positions[log_file] = log_file.stat().st_size
+        in_block_states[log_file] = False
         console.print(f"[dim]Watching: {log_file.name}[/dim]")
 
     console.print()
@@ -100,19 +90,33 @@ def tail_live(config: dict | None = None) -> None:
                         f.seek(last_pos)
                         new_content = f.read()
                         if new_content:
-                            # Print with filename prefix for multi-file tailing
                             prefix = f"[cyan][{log_file.stem}][/cyan] "
                             is_server_main = log_file.stem == "server-main"
 
                             for line in new_content.splitlines():
-                                if is_server_main and _is_status_line(line):
+                                if not is_server_main:
+                                    console.print(f"{prefix}{line}")
                                     continue
-                                console.print(f"{prefix}{line}")
+
+                                # State machine for server-main.log
+                                line_lower = line.lower()
+                                in_block = in_block_states[log_file]
+
+                                if in_block:
+                                    if "memory usage managed/total:" in line_lower:
+                                        in_block_states[log_file] = False
+                                    # Discard line
+                                elif "is up and running" in line_lower:
+                                    in_block_states[log_file] = True
+                                    # Discard line
+                                elif "is not running" in line_lower:
+                                    # Discard single-line status
+                                    pass
+                                else:
+                                    console.print(f"{prefix}{line}")
 
                     file_positions[log_file] = current_size
-
             time.sleep(0.5)
-
     except KeyboardInterrupt:
         console.print("\n[yellow]Stopped tailing logs[/yellow]")
 
@@ -196,28 +200,38 @@ def browse_archives(config: dict | None = None) -> None:
 
 
 def view_file(file_path: Path) -> None:
-    """View a file using the system pager or less, filtering status lines."""
-    is_server_main = file_path.stem == "server-main"
-
+    """View a file using the system pager or less, filtering status blocks."""
     with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-        if is_server_main:
-            content = "".join(
-                line for line in f if not _is_status_line(line)
-            )
+        if file_path.stem == "server-main":
+            lines = f.readlines()
+            filtered_lines = []
+            in_block = False
+            for line in lines:
+                line_lower = line.lower()
+                if "is up and running" in line_lower:
+                    in_block = True
+                    continue  # Start of block, discard
+                if "is not running" in line_lower:
+                    continue  # Single line block, discard
+
+                if in_block:
+                    if "memory usage managed/total:" in line_lower:
+                        in_block = False
+                    continue  # Line is inside block, discard
+
+                filtered_lines.append(line)
+            content = "".join(filtered_lines)
         else:
             content = f.read()
 
     pager_cmd = []
     if sys.platform == "win32":
-        # On Windows, use 'more'
         pager_cmd = ["more"]
     else:
-        # On Unix, use 'less' with options for color and quitting
         pager_cmd = ["less", "-R"]
 
     try:
         process = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE, text=True)
         process.communicate(input=content)
     except (FileNotFoundError, Exception):
-        # Fallback: print to console if pager fails or content is small
         console.print(content)
