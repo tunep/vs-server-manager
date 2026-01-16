@@ -10,7 +10,19 @@ from rich.prompt import Prompt
 
 from .config import get_logs_path, load_config
 
+
 console = Console()
+
+
+def _is_status_line(line: str) -> bool:
+    """Check if a line is part of a status update."""
+    return (
+        "Version:" in line
+        or "Uptime:" in line
+        or "Players online:" in line
+        or "Memory usage Managed/Total:" in line
+        or "is up and running" in line
+    )
 
 
 def _get_active_log_files(logs_path: Path) -> list[Path]:
@@ -90,7 +102,11 @@ def tail_live(config: dict | None = None) -> None:
                         if new_content:
                             # Print with filename prefix for multi-file tailing
                             prefix = f"[cyan][{log_file.stem}][/cyan] "
+                            is_server_main = log_file.stem == "server-main"
+
                             for line in new_content.splitlines():
+                                if is_server_main and _is_status_line(line):
+                                    continue
                                 console.print(f"{prefix}{line}")
 
                     file_positions[log_file] = current_size
@@ -114,7 +130,9 @@ def browse_archives(config: dict | None = None) -> None:
     archive_folders = _get_archive_folders(logs_path)
 
     if not archive_folders:
-        console.print(f"[yellow]No archived logs found in {logs_path / 'Archive'}[/yellow]")
+        console.print(
+            f"[yellow]No archived logs found in {logs_path / 'Archive'}[/yellow]"
+        )
         return
 
     # Display archive folders
@@ -178,20 +196,28 @@ def browse_archives(config: dict | None = None) -> None:
 
 
 def view_file(file_path: Path) -> None:
-    """View a file using the system pager or less."""
+    """View a file using the system pager or less, filtering status lines."""
+    is_server_main = file_path.stem == "server-main"
+
+    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+        if is_server_main:
+            content = "".join(
+                line for line in f if not _is_status_line(line)
+            )
+        else:
+            content = f.read()
+
+    pager_cmd = []
     if sys.platform == "win32":
-        # On Windows, use 'more' or just print
-        try:
-            subprocess.run(["more", str(file_path)], check=True)
-        except Exception:
-            # Fallback: print file content
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-                console.print(f.read())
+        # On Windows, use 'more'
+        pager_cmd = ["more"]
     else:
-        # On Unix, use 'less' with search capability
-        try:
-            subprocess.run(["less", "-R", str(file_path)], check=True)
-        except FileNotFoundError:
-            # Fallback to cat if less not available
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-                console.print(f.read())
+        # On Unix, use 'less' with options for color and quitting
+        pager_cmd = ["less", "-R"]
+
+    try:
+        process = subprocess.Popen(pager_cmd, stdin=subprocess.PIPE, text=True)
+        process.communicate(input=content)
+    except (FileNotFoundError, Exception):
+        # Fallback: print to console if pager fails or content is small
+        console.print(content)
