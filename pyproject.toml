@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vintage-story-manager"
+name = "vs-server-manager"
 version = "0.1.0"
 description = "CLI tool for managing a Vintage Story dedicated server"
 readme = "README.md"
