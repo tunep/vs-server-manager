@@ -1,0 +1,17 @@
+Data path is /var/vintagestory/data
+VintagestoryServer.dll process found ... executing command
+15.1.2026 13:24:26 [Notification] Handling Console Command /stats 
+15.1.2026 13:24:26 [Notification] Version: 1.21.5
+Uptime: 0 days, 0 hours, 31 minutes, 16 seconds
+Players last online: 253 seconds ago
+Players online: 0 / 16
+
+Memory usage Managed/Total: 2128.8Mb / 2564.1 Mb
+Last 2s Average Tick Time: 0.03 ms
+Last 2s Ticks/s: 30.5
+Last 10 ticks (ms): 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+Loaded chunks: 12
+Loaded entities: 0 (0 active)
+Network TCP: 0 Packets/s or 0 Kb/s
+Network UDP: 0 Packets/s or 0 Kb/s
+VintagestoryServer.dll is up and running!
