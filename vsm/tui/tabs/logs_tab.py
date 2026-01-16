@@ -3,9 +3,8 @@
 from pathlib import Path
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal
+from textual.containers import Container, Horizontal
 from textual.widgets import Button, RichLog, Select
-from textual.widget import Widget
 
 from ...config import get_logs_path, load_config
 from ..workers import run_blocking
@@ -22,15 +21,8 @@ def _get_active_log_files(logs_path: Path) -> list[Path]:
     )
 
 
-class LogsTab(Widget):
+class LogsTab(Container):
     """Live logs viewer tab."""
-
-    DEFAULT_CSS = """
-    LogsTab {
-        layout: vertical;
-        height: 100%;
-    }
-    """
 
     def __init__(self) -> None:
         super().__init__()

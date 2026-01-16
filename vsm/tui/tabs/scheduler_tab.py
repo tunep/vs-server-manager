@@ -3,23 +3,15 @@
 from datetime import datetime, timedelta
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Button, DataTable, Static
-from textual.widget import Widget
 
 from ...config import load_config
 from ...scheduler import get_scheduler, SchedulerState
 
 
-class SchedulerTab(Widget):
+class SchedulerTab(Container):
     """Scheduler status and control tab."""
-
-    DEFAULT_CSS = """
-    SchedulerTab {
-        layout: vertical;
-        height: 100%;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         """Create the scheduler tab layout."""

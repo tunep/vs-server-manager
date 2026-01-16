@@ -1,24 +1,16 @@
 """Console tab for VSM TUI."""
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal
+from textual.containers import Container, Horizontal
 from textual.widgets import Button, Input, RichLog
-from textual.widget import Widget
 
 from ...config import load_config
 from ...server import command as server_command
 from ..workers import run_blocking
 
 
-class ConsoleTab(Widget):
+class ConsoleTab(Container):
     """Server console tab."""
-
-    DEFAULT_CSS = """
-    ConsoleTab {
-        layout: vertical;
-        height: 100%;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         """Create the console tab layout."""

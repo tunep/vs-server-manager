@@ -1,24 +1,16 @@
 """Backups tab for VSM TUI."""
 
 from textual.app import ComposeResult
-from textual.containers import Horizontal
+from textual.containers import Container, Horizontal
 from textual.widgets import Button, DataTable, Static
-from textual.widget import Widget
 
 from ...backup import list_backups, server_backup, world_backup
 from ...config import load_config
 from ..workers import run_blocking
 
 
-class BackupsTab(Widget):
+class BackupsTab(Container):
     """Backup management tab."""
-
-    DEFAULT_CSS = """
-    BackupsTab {
-        layout: vertical;
-        height: 100%;
-    }
-    """
 
     def compose(self) -> ComposeResult:
         """Create the backups tab layout."""

@@ -1,24 +1,16 @@
 """Status tab for VSM TUI."""
 
 from textual.app import ComposeResult
-from textual.containers import Vertical, Horizontal
+from textual.containers import Container, Vertical, Horizontal
 from textual.widgets import Button, Static
-from textual.widget import Widget
 
 from ...config import load_config
 from ...server import ServerStatus, status, start, stop, restart
 from ..workers import run_blocking
 
 
-class StatusTab(Widget):
+class StatusTab(Container):
     """Server status and control tab."""
-
-    DEFAULT_CSS = """
-    StatusTab {
-        layout: horizontal;
-        height: 100%;
-    }
-    """
 
     def __init__(self) -> None:
         super().__init__()
