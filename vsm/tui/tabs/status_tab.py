@@ -1,7 +1,7 @@
 """Status tab for VSM TUI."""
 
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical, Horizontal
+from textual.containers import Container, Vertical
 from textual.widgets import Button, Static
 
 from ...config import load_config
@@ -15,6 +15,7 @@ class StatusTab(Container):
     def __init__(self) -> None:
         super().__init__()
         self._status: ServerStatus | None = None
+        self._starting: bool = False
 
     def compose(self) -> ComposeResult:
         """Create the status tab layout."""
@@ -27,10 +28,9 @@ class StatusTab(Container):
             yield Static("Memory: [dim]--[/dim]", id="status-memory")
         with Vertical(id="controls-panel"):
             yield Static("CONTROLS", classes="panel-title")
-            with Horizontal():
-                yield Button("Start", id="btn-start", variant="success")
-                yield Button("Stop", id="btn-stop", variant="error")
-                yield Button("Restart", id="btn-restart", variant="warning")
+            yield Button("Start", id="btn-start", variant="success")
+            yield Button("Stop", id="btn-stop", variant="error")
+            yield Button("Restart", id="btn-restart", variant="warning")
 
     def on_mount(self) -> None:
         """Start status refresh on mount."""
@@ -63,30 +63,48 @@ class StatusTab(Container):
         btn_stop = self.query_one("#btn-stop", Button)
         btn_restart = self.query_one("#btn-restart", Button)
 
-        if s.running:
+        # Check if server is fully running (has version, uptime, and memory)
+        fully_running = s.running and s.version and s.uptime and s.memory_managed
+
+        if fully_running:
+            # Server is fully up and running
+            self._starting = False
             self.query_one("#status-running", Static).update(
                 "Status: [green]Running[/green]"
             )
             self.query_one("#status-version", Static).update(
-                f"Version: {s.version or '--'}"
+                f"Version: {s.version}"
             )
             self.query_one("#status-uptime", Static).update(
-                f"Uptime: {s.uptime or '--'}"
+                f"Uptime: {s.uptime}"
             )
             self.query_one("#status-players", Static).update(
                 f"Players: {s.players_online} / {s.max_players}"
             )
-            if s.memory_managed and s.memory_total:
-                self.query_one("#status-memory", Static).update(
-                    f"Memory: {s.memory_managed} / {s.memory_total}"
-                )
-            else:
-                self.query_one("#status-memory", Static).update("Memory: --")
+            self.query_one("#status-memory", Static).update(
+                f"Memory: {s.memory_managed} / {s.memory_total}"
+            )
             # Server is running: show Stop and Restart, hide Start
             btn_start.display = False
             btn_stop.display = True
             btn_restart.display = True
+        elif self._starting or (s.running and not fully_running):
+            # Server is starting up
+            self._starting = True
+            self.query_one("#status-running", Static).update(
+                "Status: [yellow]Starting[/yellow]"
+            )
+            self.query_one("#status-version", Static).update("Version: [dim]--[/dim]")
+            self.query_one("#status-uptime", Static).update("Uptime: [dim]--[/dim]")
+            self.query_one("#status-players", Static).update("Players: [dim]--[/dim]")
+            self.query_one("#status-memory", Static).update("Memory: [dim]--[/dim]")
+            # Server is starting: hide all buttons
+            btn_start.display = False
+            btn_stop.display = False
+            btn_restart.display = False
         else:
+            # Server is stopped
+            self._starting = False
             self.query_one("#status-running", Static).update(
                 "Status: [red]Stopped[/red]"
             )
@@ -105,11 +123,14 @@ class StatusTab(Container):
         config = load_config()
 
         if button_id == "btn-start":
+            self._starting = True
+            self._update_display()
             self.notify("Starting server...")
             try:
                 await run_blocking(start, config)
                 self.notify("Server start command sent", severity="information")
             except Exception as e:
+                self._starting = False
                 self.notify(f"Failed to start: {e}", severity="error")
 
         elif button_id == "btn-stop":
