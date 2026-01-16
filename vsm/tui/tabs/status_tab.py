@@ -17,6 +17,8 @@ class StatusTab(Container):
         super().__init__()
         self._status: ServerStatus | None = None
         self._starting: bool = False
+        self._restarting: bool = False
+        self._stopping: bool = False
 
     def compose(self) -> ComposeResult:
         """Create the status tab layout."""
@@ -40,6 +42,9 @@ class StatusTab(Container):
 
     def refresh_status(self) -> None:
         """Refresh server status."""
+        # Don't refresh if we're in a temporary state
+        if self._starting or self._restarting or self._stopping:
+            return
         self.run_worker(self._fetch_status(), exclusive=True)
 
     async def _fetch_status(self) -> None:
@@ -56,7 +61,7 @@ class StatusTab(Container):
 
     def _update_display(self) -> None:
         """Update the status display."""
-        if self._status is None:
+        if self._status is None and not self._restarting and not self._stopping:
             return
 
         s = self._status
@@ -65,9 +70,33 @@ class StatusTab(Container):
         btn_restart = self.query_one("#btn-restart", Button)
 
         # Check if server is fully running (has version, uptime, and memory)
-        fully_running = s.running and s.version and s.uptime and s.memory_managed
+        fully_running = (
+            s and s.running and s.version and s.uptime and s.memory_managed
+        )
 
-        if fully_running:
+        if self._restarting:
+            self.query_one("#status-running", Static).update(
+                "Status: [yellow]Restarting[/yellow]"
+            )
+            self.query_one("#status-version", Static).update("Version: [dim]--[/dim]")
+            self.query_one("#status-uptime", Static).update("Uptime: [dim]--[/dim]")
+            self.query_one("#status-players", Static).update("Players: [dim]--[/dim]")
+            self.query_one("#status-memory", Static).update("Memory: [dim]--[/dim]")
+            btn_start.display = False
+            btn_stop.display = False
+            btn_restart.display = False
+        elif self._stopping:
+            self.query_one("#status-running", Static).update(
+                "Status: [yellow]Stopping[/yellow]"
+            )
+            self.query_one("#status-version", Static).update("Version: [dim]--[/dim]")
+            self.query_one("#status-uptime", Static).update("Uptime: [dim]--[/dim]")
+            self.query_one("#status-players", Static).update("Players: [dim]--[/dim]")
+            self.query_one("#status-memory", Static).update("Memory: [dim]--[/dim]")
+            btn_start.display = False
+            btn_stop.display = False
+            btn_restart.display = False
+        elif fully_running:
             # Server is fully up and running
             self._starting = False
             self.query_one("#status-running", Static).update(
@@ -89,7 +118,7 @@ class StatusTab(Container):
             btn_start.display = False
             btn_stop.display = True
             btn_restart.display = True
-        elif self._starting or (s.running and not fully_running):
+        elif self._starting or (s and s.running and not fully_running):
             # Server is starting up
             self._starting = True
             self.query_one("#status-running", Static).update(
@@ -133,25 +162,36 @@ class StatusTab(Container):
             except Exception as e:
                 self._starting = False
                 self.notify(f"Failed to start: {e}", severity="error")
+            finally:
+                self.set_timer(2, self.refresh_status)
 
         elif button_id == "btn-stop":
+            self._stopping = True
+            self._update_display()
             self.notify("Stopping server...")
             try:
                 await run_blocking(stop, config)
                 self.notify("Server stop command sent", severity="information")
             except Exception as e:
+                self._stopping = False
                 self.notify(f"Failed to stop: {e}", severity="error")
+            finally:
+                self.set_timer(2, self.refresh_status)
 
         elif button_id == "btn-restart":
+            self._restarting = True
+            self._update_display()
             self.notify("Restarting server...")
             try:
                 await run_blocking(restart, config)
                 self.notify("Server restart command sent", severity="information")
             except Exception as e:
                 self.notify(f"Failed to restart: {e}", severity="error")
+            finally:
+                self._restarting = False
+                self._starting = True  # Assume it's starting up after a restart
+                self.set_timer(2, self.refresh_status)
 
-        # Refresh status after action
-        self.set_timer(2, self.refresh_status)
 
     def on_key(self, event: Key) -> None:
         """Handle key events for arrow navigation in controls."""
