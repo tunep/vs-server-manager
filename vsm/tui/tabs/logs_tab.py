@@ -29,6 +29,7 @@ class LogsTab(Container):
         self._file_positions: dict[Path, int] = {}
         self._log_files: list[Path] = []
         self._following = True
+        self._in_block = False
 
     def compose(self) -> ComposeResult:
         """Create the logs tab layout."""
@@ -52,6 +53,7 @@ class LogsTab(Container):
         """Handle log file selection change."""
         log_viewer = self.query_one("#log-viewer", RichLog)
         log_viewer.clear()
+        self._in_block = False  # Reset filter state
         if event.value:
             selected_file = Path(str(event.value))
             # Reset file position for the newly selected file to 0 for full initial load
@@ -109,9 +111,27 @@ class LogsTab(Container):
                     )
                     if content:
                         prefix = f"[cyan][{log_file.stem}][/cyan] "
+                        is_server_main = log_file.stem == "server-main"
+
                         for line in content.splitlines():
-                            if line.strip():
-                                log_viewer.write(f"{prefix}{line}")
+                            if not line.strip():
+                                continue
+
+                            # State machine for server-main.log
+                            if is_server_main:
+                                line_lower = line.lower()
+                                if self._in_block:
+                                    if "memory usage managed/total:" in line_lower:
+                                        self._in_block = False
+                                    continue  # Discard line
+                                elif "is up and running" in line_lower:
+                                    self._in_block = True
+                                    continue  # Discard line
+                                elif "is not running" in line_lower:
+                                    continue  # Discard single-line status
+                            
+                            log_viewer.write(f"{prefix}{line}")
+
                     self._file_positions[log_file] = current_size
                 elif current_size < last_pos:
                     # File was truncated, reset position
