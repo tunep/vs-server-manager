@@ -2,6 +2,7 @@
 
 from textual.app import ComposeResult
 from textual.containers import Container, Vertical
+from textual.events import Key
 from textual.widgets import Button, Static
 
 from ...config import load_config
@@ -151,3 +152,42 @@ class StatusTab(Container):
 
         # Refresh status after action
         self.set_timer(2, self.refresh_status)
+
+    def on_key(self, event: Key) -> None:
+        """Handle key events for arrow navigation in controls."""
+        focused = self.app.focused
+
+        # We only care about events when a button inside the controls-panel is focused
+        if (
+            not isinstance(focused, Button)
+            or not focused.parent
+            or focused.parent.id != "controls-panel"
+        ):
+            return
+
+        if event.key not in ("up", "down"):
+            return
+
+        event.prevent_default()
+
+        # Get only the visible buttons
+        visible_buttons = [
+            btn for btn in self.query(Button, "#controls-panel") if btn.display
+        ]
+
+        if not visible_buttons:
+            return
+
+        try:
+            current_index = visible_buttons.index(focused)
+        except ValueError:
+            return
+
+        if event.key == "down":
+            next_index = (current_index + 1) % len(visible_buttons)
+            visible_buttons[next_index].focus()
+        elif event.key == "up":
+            next_index = (current_index - 1 + len(visible_buttons)) % len(
+                visible_buttons
+            )
+            visible_buttons[next_index].focus()
