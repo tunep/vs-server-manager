@@ -34,8 +34,8 @@ class LogsTab(Container):
         """Create the logs tab layout."""
         with Horizontal(id="log-controls"):
             yield Select(
-                [(("All Logs", "all"))],
-                value="all",
+                [],
+                value=None,
                 id="log-select",
                 allow_blank=False,
             )
@@ -48,6 +48,16 @@ class LogsTab(Container):
         self._init_logs()
         self.set_interval(0.5, self._poll_logs)
 
+    def on_select_changed(self, event: Select.Changed) -> None:
+        """Handle log file selection change."""
+        log_viewer = self.query_one("#log-viewer", RichLog)
+        log_viewer.clear()
+        if event.value:
+            selected_file = Path(str(event.value))
+            # Reset file position for the newly selected file to 0 for full initial load
+            self._file_positions[selected_file] = 0
+            self._poll_logs()
+
     def _init_logs(self) -> None:
         """Initialize log file tracking."""
         config = load_config()
@@ -56,15 +66,14 @@ class LogsTab(Container):
 
         # Update select options
         select = self.query_one("#log-select", Select)
-        options = [("All Logs", "all")]
+        options = []
         for log_file in self._log_files:
             options.append((log_file.stem, str(log_file)))
         select.set_options(options)
 
-        # Initialize file positions to current end
-        for log_file in self._log_files:
-            if log_file.exists():
-                self._file_positions[log_file] = log_file.stat().st_size
+        # Set default value to the first log file if available
+        if self._log_files:
+            select.value = str(self._log_files[0])
 
         log_viewer = self.query_one("#log-viewer", RichLog)
         log_viewer.write("[dim]Watching log files...[/dim]")
@@ -83,8 +92,8 @@ class LogsTab(Container):
         log_viewer = self.query_one("#log-viewer", RichLog)
 
         for log_file in self._log_files:
-            # Skip if filtering to specific file
-            if selected != "all" and str(log_file) != selected:
+        # Skip if not the selected file
+        if selected is None or str(log_file) != selected:
                 continue
 
             if not log_file.exists():
