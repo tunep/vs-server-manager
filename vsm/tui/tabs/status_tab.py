@@ -1,7 +1,7 @@
 """Status tab for VSM TUI."""
 
 from textual.app import ComposeResult
-from textual.containers import Container, Vertical, Horizontal
+from textual.containers import Container, Vertical
 from textual.widgets import Button, Static
 
 from ...config import load_config
@@ -28,10 +28,9 @@ class StatusTab(Container):
             yield Static("Memory: [dim]--[/dim]", id="status-memory")
         with Vertical(id="controls-panel"):
             yield Static("CONTROLS", classes="panel-title")
-            with Horizontal():
-                yield Button("Start", id="btn-start", variant="success")
-                yield Button("Stop", id="btn-stop", variant="error")
-                yield Button("Restart", id="btn-restart", variant="warning")
+            yield Button("Start", id="btn-start", variant="success")
+            yield Button("Stop", id="btn-stop", variant="error")
+            yield Button("Restart", id="btn-restart", variant="warning")
 
     def on_mount(self) -> None:
         """Start status refresh on mount."""
