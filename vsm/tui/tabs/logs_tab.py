@@ -111,7 +111,7 @@ class LogsTab(Container):
                     )
                     if content:
                         prefix = f"[cyan][{log_file.stem}][/cyan] "
-                        is_server_main = log_file.stem == "server-main"
+                        is_server_main = log_file.stem.lower() == "server-main"
 
                         for line in content.splitlines():
                             if not line.strip():
@@ -121,14 +121,12 @@ class LogsTab(Container):
                             if is_server_main:
                                 line_lower = line.lower()
                                 if self._in_block:
-                                    if "memory usage managed/total:" in line_lower:
+                                    if "network udp:" in line_lower:
                                         self._in_block = False
                                     continue  # Discard line
-                                elif "is up and running" in line_lower:
+                                elif "handling console command /stats" in line_lower:
                                     self._in_block = True
                                     continue  # Discard line
-                                elif "is not running" in line_lower:
-                                    continue  # Discard single-line status
                             
                             log_viewer.write(f"{prefix}{line}")
 
