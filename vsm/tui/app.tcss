@@ -189,6 +189,7 @@ ConfigScreen {
 /* General button styling */
 Button {
     width: auto;
+    border: none;
 }
 
 Button.primary {
