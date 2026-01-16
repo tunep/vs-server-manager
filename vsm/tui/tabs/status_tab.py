@@ -172,7 +172,7 @@ class StatusTab(Container):
 
         # Get only the visible buttons
         visible_buttons = [
-            btn for btn in self.query(Button, "#controls-panel") if btn.display
+            btn for btn in self.query("#controls-panel Button") if btn.display
         ]
 
         if not visible_buttons:
