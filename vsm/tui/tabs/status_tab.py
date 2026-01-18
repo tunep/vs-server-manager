@@ -8,6 +8,7 @@ from textual.widgets import Button, Static
 from ...config import load_config
 from ...server import ServerStatus, status, start, stop, restart
 from ..workers import run_blocking
+from ..screens import ServerConfigScreen
 
 
 class StatusTab(Container):
@@ -34,6 +35,7 @@ class StatusTab(Container):
             yield Button("Start", id="btn-start", variant="success")
             yield Button("Stop", id="btn-stop", variant="error")
             yield Button("Restart", id="btn-restart", variant="warning")
+            yield Button("Config", id="btn-config", variant="primary")
 
     def on_mount(self) -> None:
         """Start status refresh on mount."""
@@ -189,6 +191,9 @@ class StatusTab(Container):
             finally:
                 self._restarting = False
                 self.refresh_status()
+
+        elif button_id == "btn-config":
+            self.app.push_screen(ServerConfigScreen())
 
 
 

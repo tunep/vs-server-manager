@@ -186,6 +186,34 @@ ConfigScreen {
     margin: 0 1;
 }
 
+/* Server Config Screen */
+ServerConfigScreen {
+    align: center middle;
+}
+
+#server-config-dialog {
+    width: 80;
+    height: auto;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#server-config-dialog DataTable {
+    height: auto;
+    max-height: 25;
+}
+
+#server-config-buttons {
+    height: auto;
+    padding-top: 1;
+    align: center middle;
+}
+
+#server-config-buttons Button {
+    margin: 0 1;
+}
+
 /* General button styling */
 Button {
     width: auto;
