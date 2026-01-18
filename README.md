@@ -1,19 +1,17 @@
-# Vintage Story Server Manager
+# Vintage Story Server Manager (VSM)
 
 A Python TUI for managing a Vintage Story dedicated server.
 
-> **Platform Support:** Currently Linux only. Designed for easy Windows support in the future.
+> **Platform Support:** Currently Linux only. Windows support planned.
 
 ## Features
 
-- **Dashboard TUI** - Tab-based interface for all server management
+- **Dashboard TUI** - Tab-based Textual interface for all server management
 - **Server Control** - Start, stop, restart, and check status
 - **Live Logs** - Real-time log viewer with filtering
 - **Backup Management** - Automated world and full server backups
 - **Scheduler** - Background backup scheduling with player announcements
 - **Server Console** - Send commands directly to the server
-
----
 
 ## Installation
 
@@ -21,34 +19,32 @@ Requires Python 3.10+
 
 ```bash
 # Clone the repository
-git clone https://github.com/tunep/vs-server-manager.git
-cd vs-server-manager
+git clone https://github.com/tunep/vintage-story-backup.git
+cd vintage-story-backup
 
-# Install in development mode
+# Install
 pip install -e .
 
 # Launch the TUI
 vsm
 ```
 
----
-
 ## TUI Overview
 
 Launch with `vsm` to open the terminal user interface.
 
 ```
-+------------------------------------------------------------------+
-|  Vintage Story Server Manager                              [v0.2] |
-+------------------------------------------------------------------+
-|  Status | Logs | Backups | Scheduler | Console                   |
-+------------------------------------------------------------------+
-|                                                                  |
-|  Tab content displayed here                                      |
-|                                                                  |
-+------------------------------------------------------------------+
-|  q:Quit  c:Config  r:Refresh                                     |
-+------------------------------------------------------------------+
+┌──────────────────────────────────────────────────────────────────┐
+│  Vintage Story Server Manager                             [v0.2] │
+├──────────────────────────────────────────────────────────────────┤
+│  Status │ Logs │ Backups │ Scheduler │ Console                   │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Tab content displayed here                                      │
+│                                                                  │
+├──────────────────────────────────────────────────────────────────┤
+│  q:Quit  c:Config  r:Refresh                                     │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Tabs
@@ -69,8 +65,6 @@ Launch with `vsm` to open the terminal user interface.
 | `c` | Open config viewer |
 | `r` | Refresh current tab |
 | `1-5` | Switch to tab (Status, Logs, Backups, Scheduler, Console) |
-
----
 
 ## Backup System
 
@@ -97,7 +91,7 @@ Start the scheduler from the **Scheduler** tab. It runs in the background and:
 - Announces upcoming server backups to online players
 - Tracks downtime for accurate estimates
 
-### Backup Announcements
+### Announcements
 
 Announcements are broadcast to players before server backups:
 
@@ -114,8 +108,6 @@ Estimated downtime is calculated from previous backup cycles:
 1. Records timestamp when `stop` command starts
 2. Records timestamp when `start` command finishes
 3. Uses the duration for future estimates
-
----
 
 ## Configuration
 
@@ -137,8 +129,6 @@ Settings are stored in `config.json` (created automatically on first run).
 
 Press `c` in the TUI to view current configuration.
 
----
-
 ## Server Commands
 
 Use the **Console** tab to send commands to the server:
@@ -148,8 +138,6 @@ Use the **Console** tab to send commands to the server:
 | `announce <text>` | Broadcast message to all players |
 | `genbackup [filename]` | Create world backup |
 | `list clients` | Show online players |
-
----
 
 ## Platform Notes
 
