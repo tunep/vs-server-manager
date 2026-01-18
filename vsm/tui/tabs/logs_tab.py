@@ -71,14 +71,16 @@ class LogsTab(Container):
         options = []
         for log_file in self._log_files:
             options.append((log_file.stem, str(log_file)))
-        select.set_options(options)
-
-        # Set default value to the first log file if available
-        if self._log_files:
-            select.value = str(self._log_files[0])
 
         log_viewer = self.query_one("#log-viewer", RichLog)
-        log_viewer.write("[dim]Watching log files...[/dim]")
+
+        if options:
+            select.set_options(options)
+            select.value = str(self._log_files[0])
+            log_viewer.write("[dim]Watching log files...[/dim]")
+        else:
+            # No log files found - keep the placeholder and show a message
+            log_viewer.write("[yellow]No log files found. Start the server to generate logs.[/yellow]")
 
     def _poll_logs(self) -> None:
         """Poll for new log content."""
