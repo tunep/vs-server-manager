@@ -36,12 +36,16 @@ pytest                    # Run tests
 - `backup.py` - World backups (via server's `genbackup`) and server backups (tar.gz archives)
 - `scheduler.py` - APScheduler-based background jobs for automated backups with player announcements
 - `downtime.py` - Tracks server downtime for backup duration estimates
-- `logs.py` - Log file reading utilities
+- `logs.py` - Log file reading with filtering for status block noise
 
 ### TUI Layer (`vsm/tui/`)
 - `app.py` - Main `VSMApp` class with tab navigation and keybindings
 - `workers.py` - `run_blocking()` helper for running sync code in thread pool
-- `screens/config_screen.py` - Modal config viewer
+- `screens/` - Modal screens:
+  - `config_screen.py` - Editable VSM config viewer (press Enter to edit values)
+  - `server_config_screen.py` - Editable server config (serverconfig.json) viewer
+  - `edit_value_screen.py` - Modal dialog for editing individual config values
+  - `confirm_screen.py` - Confirmation dialog for destructive actions
 - `tabs/` - Individual tab components (StatusTab, LogsTab, BackupsTab, SchedulerTab, ConsoleTab)
 
 ### Key Patterns
@@ -50,6 +54,8 @@ pytest                    # Run tests
 - **Tab Architecture**: Each tab inherits from `Container` and implements `compose()` for layout. Tabs refresh via workers and update widgets directly.
 - **Scheduler Singleton**: `VSMScheduler.get_instance()` returns the global scheduler. The scheduler runs APScheduler in background mode and manages backup jobs + announcement scheduling.
 - **Config Flow**: `load_config()` auto-creates `config.json` with defaults. All path functions (`get_data_path`, etc.) expand `~` and return `Path` objects.
+- **Server State Management**: StatusTab tracks transitional states (`_starting`, `_stopping`, `_restarting`) to provide accurate UI feedback. BackupsTab checks these states before allowing manual backups.
+- **Modal Dialogs**: Use `push_screen_wait()` for confirmation dialogs that need to block until user responds.
 
 ## Server Interaction
 
