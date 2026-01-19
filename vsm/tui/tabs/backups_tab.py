@@ -19,6 +19,7 @@ class ServerState(Enum):
 
     STOPPED = "stopped"
     STARTING = "starting"
+    STOPPING = "stopping"
     RUNNING = "running"
     UNKNOWN = "unknown"
 
@@ -96,10 +97,26 @@ class BackupsTab(Container):
                 date_str,
             )
 
-    async def _get_current_server_state(self, config: dict) -> ServerState:
-        """Get the current server state."""
+    def _get_status_tab(self) -> StatusTab | None:
+        """Get the StatusTab instance from the app."""
         try:
-            server_status = await run_blocking(status, config)
+            return self.app.query_one(StatusTab)
+        except Exception:
+            return None
+
+    def _get_current_server_state(self, config: dict) -> ServerState:
+        """Get the current server state, including transitional states from StatusTab."""
+        # Check StatusTab for transitional states first
+        status_tab = self._get_status_tab()
+        if status_tab:
+            if status_tab._stopping:
+                return ServerState.STOPPING
+            if status_tab._starting or status_tab._restarting:
+                return ServerState.STARTING
+
+        # Fall back to checking actual server status
+        try:
+            server_status = status(config)
             return _get_server_state(server_status)
         except Exception:
             return ServerState.UNKNOWN
@@ -110,7 +127,7 @@ class BackupsTab(Container):
 
         if event.button.id == "btn-world-backup":
             # World backup requires server to be fully running
-            server_state = await self._get_current_server_state(config)
+            server_state = self._get_current_server_state(config)
 
             if server_state != ServerState.RUNNING:
                 self.notify(
@@ -136,11 +153,18 @@ class BackupsTab(Container):
     async def _handle_server_backup(self, config: dict) -> None:
         """Handle server backup with state validation and confirmation."""
         # Server backup requires server to be fully stopped or fully running
-        server_state = await self._get_current_server_state(config)
+        server_state = self._get_current_server_state(config)
 
         if server_state == ServerState.STARTING:
             self.notify(
                 "Cannot create server backup while the server is starting",
+                severity="warning",
+            )
+            return
+
+        if server_state == ServerState.STOPPING:
+            self.notify(
+                "Cannot create server backup while the server is stopping",
                 severity="warning",
             )
             return
@@ -178,13 +202,6 @@ class BackupsTab(Container):
             self.refresh_backups()
         except Exception as e:
             self.notify(f"Server backup failed: {e}", severity="error")
-
-    def _get_status_tab(self) -> StatusTab | None:
-        """Get the StatusTab instance from the app."""
-        try:
-            return self.app.query_one(StatusTab)
-        except Exception:
-            return None
 
     async def _perform_server_backup_with_restart(self, config: dict) -> None:
         """Stop server, perform backup, and restart."""
