@@ -7,11 +7,12 @@ A Python TUI for managing a Vintage Story dedicated server.
 ## Features
 
 - **Dashboard TUI** - Tab-based Textual interface for all server management
-- **Server Control** - Start, stop, restart, and check status
-- **Live Logs** - Real-time log viewer with filtering
-- **Backup Management** - Automated world and full server backups
+- **Server Control** - Start, stop, restart with transitional state display (Starting/Stopping)
+- **Live Logs** - Real-time log viewer with file selection and automatic noise filtering
+- **Backup Management** - World and server backups with state validation and confirmation dialogs
 - **Scheduler** - Background backup scheduling with player announcements
 - **Server Console** - Send commands directly to the server
+- **Configuration Editing** - Edit VSM and server configs via modal dialogs
 
 ## Installation
 
@@ -51,9 +52,9 @@ Launch with `vsm` to open the terminal user interface.
 
 | Tab | Description |
 |-----|-------------|
-| **Status** | Server status (running/stopped, version, uptime, players, memory) and Start/Stop/Restart buttons |
-| **Logs** | Live log viewer with file filter and pause/resume |
-| **Backups** | List of server backups with World Backup and Server Backup buttons |
+| **Status** | Server status (Running/Stopped/Starting/Stopping), version, uptime, players, memory. Dynamic control buttons and Config button for server settings. |
+| **Logs** | Log viewer with file selection dropdown. Automatically filters status block noise. |
+| **Backups** | List of server backups. World Backup (requires running server) and Server Backup (with confirmation if server running) buttons. |
 | **Scheduler** | Scheduler status, scheduled jobs, and Start/Stop controls |
 | **Console** | Send commands to the server and view output |
 
@@ -62,9 +63,10 @@ Launch with `vsm` to open the terminal user interface.
 | Key | Action |
 |-----|--------|
 | `q` | Quit |
-| `c` | Open config viewer |
+| `c` | Open VSM config editor |
 | `r` | Refresh current tab |
 | `1-5` | Switch to tab (Status, Logs, Backups, Scheduler, Console) |
+| `↑/↓` | Navigate control buttons (in Status tab) |
 
 ## Backup System
 
