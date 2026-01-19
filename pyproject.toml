@@ -28,7 +28,7 @@ dependencies = [
     "rich>=13.0",
     "textual>=0.50.0",
     "psutil>=5.9.0",
-    "jsonrpc-py>=1.13",
+    "openrpc>=0.3.0",
 ]
 
 [project.scripts]

@@ -1,19 +1,17 @@
-feat(scheduler): Implement cross-platform background daemon
+feat(rpc): Migrate RPC implementation to OpenRPC
 
-This commit introduces a background daemon for the scheduler, allowing it to run independently of the main TUI application. This ensures that scheduled backups and announcements continue to run even when the TUI is not active.
-
-The implementation has been designed to be cross-platform, working on both Linux and Windows systems.
+This commit migrates the RPC implementation from the `json-rpc` library to the `openrpc` library. This change was requested to align with OpenRPC specifications.
 
 Key changes include:
 
-- **New `vsm-scheduler` Command:** A new entry point (`vsm-scheduler`) has been added to manage the daemon's lifecycle with `start`, `stop`, `restart`, and `status` commands.
+- **Dependency Update:**
+    - Removed `json-rpc` from `pyproject.toml`.
+    - Added `openrpc` to `pyproject.toml`.
 
-- **Cross-Platform Process Management:** The Linux-specific `python-daemon` library has been replaced with `psutil` and the standard `subprocess` module. This allows for robust, cross-platform management of the background process.
+- **`vsm/rpc.py` Refactoring:**
+    - `SchedulerRPCServer` was rewritten to utilize `openrpc.RPCServer`. It now exposes scheduler methods (`get_status`, `get_jobs`) by registering wrapper functions with the `openrpc` server instance.
+    - `SchedulerRPCClient` remains a custom JSON-RPC 2.0 client due to the raw socket transport, as the `openrpc.client.RPCClient` is designed for HTTP/WebSocket endpoints. It continues to send standard JSON-RPC 2.0 requests and parses the `openrpc` server's responses.
 
-- **Background Process Script:** A new `vsm/background.py` script contains the core logic for the scheduler and RPC server that runs in the detached process.
-
-- **Daemon Manager:** The `vsm/daemon.py` script now acts as a cross-platform manager, responsible for launching and managing the background process.
-
-- **RPC Communication:** A simple JSON-RPC server (`vsm/rpc.py`) is implemented to facilitate communication between the TUI and the background scheduler daemon. This allows the TUI to get status and job information.
-
-- **TUI Integration:** The Scheduler tab in the TUI has been updated to interact with the new daemon via the RPC client. It now displays the status of the background daemon and uses the `vsm-scheduler` command to start and stop it.
+- **Compatibility:**
+    - The `vsm/daemon.py` and `vsm/background.py` scripts were adapted to correctly instantiate and use the new `openrpc`-based `SchedulerRPCServer`.
+    - The `vsm/tui/tabs/scheduler_tab.py` remains compatible as it interacts with the `SchedulerRPCClient`'s updated interface.
