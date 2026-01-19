@@ -186,6 +186,29 @@ ConfigScreen {
     margin: 0 1;
 }
 
+#config-help {
+    margin-bottom: 1;
+}
+
+#edit-container {
+    height: auto;
+    padding: 1 0;
+    align: left middle;
+}
+
+#edit-container.hidden {
+    display: none;
+}
+
+#edit-container .edit-label {
+    width: auto;
+    padding-right: 1;
+}
+
+#edit-container Input {
+    width: 1fr;
+}
+
 /* Server Config Screen */
 ServerConfigScreen {
     align: center middle;
@@ -212,6 +235,29 @@ ServerConfigScreen {
 
 #server-config-buttons Button {
     margin: 0 1;
+}
+
+#server-config-help {
+    margin-bottom: 1;
+}
+
+#server-edit-container {
+    height: auto;
+    padding: 1 0;
+    align: left middle;
+}
+
+#server-edit-container.hidden {
+    display: none;
+}
+
+#server-edit-container .edit-label {
+    width: auto;
+    padding-right: 1;
+}
+
+#server-edit-container Input {
+    width: 1fr;
 }
 
 /* General button styling */
