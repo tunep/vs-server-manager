@@ -63,7 +63,7 @@ class SchedulerTab(Container):
                 next_run_time = job.get("next_run_time")
 
                 if next_run_time:
-                    next_str = next_run_time.strftime("%Y-%m-%d %H:%M:%S")
+                    next_str = self._time_until(next_run_time)
                     if next_run is None or next_run_time < next_run:
                         next_run = next_run_time
                 else:
