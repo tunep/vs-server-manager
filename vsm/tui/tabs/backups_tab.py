@@ -126,42 +126,47 @@ class BackupsTab(Container):
                 self.notify(f"World backup failed: {e}", severity="error")
 
         elif event.button.id == "btn-server-backup":
-            # Server backup requires server to be fully stopped or fully running
-            server_state = await self._get_current_server_state(config)
-
-            if server_state == ServerState.STARTING:
-                self.notify(
-                    "Cannot create server backup while the server is starting",
-                    severity="warning",
-                )
-                return
-
-            if server_state == ServerState.UNKNOWN:
-                self.notify(
-                    "Cannot determine server status",
-                    severity="error",
-                )
-                return
-
-            if server_state == ServerState.RUNNING:
-                # Server is running, show confirmation dialog
-                confirmed = await self.app.push_screen_wait(
-                    ConfirmScreen(
-                        "Server Backup",
-                        "The server is currently running.\n\n"
-                        "Creating a server backup requires stopping the server.\n"
-                        "The server will be restarted after the backup completes.\n\n"
-                        "Do you want to continue?",
-                    )
-                )
-                if confirmed:
-                    await self._perform_server_backup_with_restart(config)
-            else:
-                # Server is stopped, proceed directly
-                await self._perform_server_backup(config)
+            # Run in a worker so we can use push_screen_wait
+            self.run_worker(self._handle_server_backup(config))
 
         elif event.button.id == "btn-refresh":
             self.refresh_backups()
+
+    async def _handle_server_backup(self, config: dict) -> None:
+        """Handle server backup with state validation and confirmation."""
+        # Server backup requires server to be fully stopped or fully running
+        server_state = await self._get_current_server_state(config)
+
+        if server_state == ServerState.STARTING:
+            self.notify(
+                "Cannot create server backup while the server is starting",
+                severity="warning",
+            )
+            return
+
+        if server_state == ServerState.UNKNOWN:
+            self.notify(
+                "Cannot determine server status",
+                severity="error",
+            )
+            return
+
+        if server_state == ServerState.RUNNING:
+            # Server is running, show confirmation dialog
+            confirmed = await self.app.push_screen_wait(
+                ConfirmScreen(
+                    "Server Backup",
+                    "The server is currently running.\n\n"
+                    "Creating a server backup requires stopping the server.\n"
+                    "The server will be restarted after the backup completes.\n\n"
+                    "Do you want to continue?",
+                )
+            )
+            if confirmed:
+                await self._perform_server_backup_with_restart(config)
+        else:
+            # Server is stopped, proceed directly
+            await self._perform_server_backup(config)
 
     async def _perform_server_backup(self, config: dict) -> None:
         """Perform a server backup without stop/start."""
