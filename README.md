@@ -1,101 +1,119 @@
-# Vintage Story Server Manager
+# Vintage Story Server Manager (VSM)
 
-A Python CLI for managing a Vintage Story dedicated server.
+A Python TUI for managing a Vintage Story dedicated server.
 
-> **Platform Support:** Currently Linux only. Designed for easy Windows support in the future.
+> **Platform Support:** Currently Linux only. Windows support planned.
 
 ## Features
 
-- **Server Control** - Start, stop, restart, and check status
-- **Backup Management** - Automated world and full server backups
-- **Log Viewer** - Tail live logs or browse archived logs
-- **Configuration** - Editable settings via `config.json`
-- **Player Management** - *(WIP)*
-- **Server Config Editor** - *(WIP)*
+- **Dashboard TUI** - Tab-based Textual interface for all server management
+- **Server Control** - Start, stop, restart with transitional state display (Starting/Stopping)
+- **Live Logs** - Real-time log viewer with file selection and automatic noise filtering
+- **Backup Management** - World and server backups with state validation and confirmation dialogs
+- **Scheduler** - Background backup scheduling with player announcements
+- **Server Console** - Send commands directly to the server
+- **Configuration Editing** - Edit VSM and server configs via modal dialogs
 
----
+## Installation
 
-## Server Control
+Requires Python 3.10+
 
-**Executable:** `{server_path}/server.sh`
+```bash
+# Clone the repository
+git clone https://github.com/tunep/vintage-story-backup.git
+cd vintage-story-backup
 
-| Command | Description |
-|---------|-------------|
-| `start` | Start the server |
-| `stop` | Stop the server |
-| `restart` | Restart the server |
-| `status` | Check if server is running (see example outputs) |
-| `command "<cmd>"` | Send a command to the server console |
+# Install
+pip install -e .
 
-**Useful server commands:**
-- `announce <text>` - Broadcast message to all players
-- `genbackup [filename]` - Create world backup (defaults to timestamp)
-- `list clients` - Show online players
+# Launch the TUI
+vsm
+```
 
----
+## TUI Overview
+
+Launch with `vsm` to open the terminal user interface.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Vintage Story Server Manager                             [v0.2] │
+├──────────────────────────────────────────────────────────────────┤
+│  Status │ Logs │ Backups │ Scheduler │ Console                   │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Tab content displayed here                                      │
+│                                                                  │
+├──────────────────────────────────────────────────────────────────┤
+│  q:Quit  c:Config  r:Refresh                                     │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Tabs
+
+| Tab | Description |
+|-----|-------------|
+| **Status** | Server status (Running/Stopped/Starting/Stopping), version, uptime, players, memory. Dynamic control buttons and Config button for server settings. |
+| **Logs** | Log viewer with file selection dropdown. Automatically filters status block noise. |
+| **Backups** | List of server backups. World Backup (requires running server) and Server Backup (with confirmation if server running) buttons. |
+| **Scheduler** | Scheduler status, scheduled jobs, and Start/Stop controls |
+| **Console** | Send commands to the server and view output |
+
+### Key Bindings
+
+| Key | Action |
+|-----|--------|
+| `q` | Quit |
+| `c` | Open VSM config editor |
+| `r` | Refresh current tab |
+| `1-5` | Switch to tab (Status, Logs, Backups, Scheduler, Console) |
+| `↑/↓` | Navigate control buttons (in Status tab) |
 
 ## Backup System
 
 ### Types of Backups
 
-| Type | Method | Location | Default Interval | Max Count |
-|------|--------|----------|------------------|-----------|
-| **World** | Server's `genbackup` command | `{data_path}/Backups` | Hourly | N/A |
-| **Server** | Script archives entire data folder | `{server_path}/backups` | Every 6 hours | 7 |
+| Type | Method | Location | Default Interval |
+|------|--------|----------|------------------|
+| **World** | Server's `genbackup` command | `{data_path}/Backups` | Hourly |
+| **Server** | Archives entire data folder | `{server_path}/backups` | Every 6 hours |
 
 ### Backup Behavior
 
 1. **Server backups** archive `{data_path}` (includes world backups and logs)
-2. After a server backup completes, clear the world backups and logs folders to avoid duplicate data
-3. **Skip the world backup** when a server backup is scheduled for the same hour
+2. After a server backup completes, clears world backups and logs to avoid duplicate data
+3. **Skips world backup** when a server backup is scheduled for the same hour
+4. Old server backups are pruned (default: keep 7)
 
-### Backup Announcements
+### Scheduler
 
-Server announcements are broadcast to all players before backups begin, giving them advance notice that the server will be going offline.
+Start the scheduler from the **Scheduler** tab. It runs in the background and:
 
-**Announcement Schedule:**
+- Schedules world backups at the configured interval
+- Schedules server backups at the configured interval
+- Announces upcoming server backups to online players
+- Tracks downtime for accurate estimates
+
+### Announcements
+
+Announcements are broadcast to players before server backups:
 
 | Minutes Before | Message |
 |----------------|---------|
-| 30 | Server going offline for backup in 30 minutes (estimated downtime: X minutes) |
-| 15 | Server going offline for backup in 15 minutes (estimated downtime: X minutes) |
-| 10 | Server going offline for backup in 10 minutes (estimated downtime: X minutes) |
-| 5 | Server going offline for backup in 5 minutes (estimated downtime: X minutes) |
-| 2 | Server going offline for backup in 2 minutes (estimated downtime: X minutes) |
-| 1 | Server going offline for backup in 1 minute (estimated downtime: X minutes) |
+| 30, 15, 10, 5, 2, 1 | Server going offline for backup in X minutes (estimated downtime: Y minutes) |
 
-Announcements use the server's `announce` command and only trigger when players are online.
+Announcements only trigger when players are online.
 
 ### Downtime Tracking
 
-The estimated downtime displayed in announcements is calculated by tracking each backup cycle:
+Estimated downtime is calculated from previous backup cycles:
 
-1. Record timestamp when the `stop` command starts
-2. Record timestamp when the `start` command finishes (server fully online)
-3. Store the duration for future estimates
+1. Records timestamp when `stop` command starts
+2. Records timestamp when `start` command finishes
+3. Uses the duration for future estimates
 
-The most recent downtime duration is used for the estimate. If no previous backup has been tracked, the estimate is omitted from announcements.
+## Configuration
 
----
-
-## Log Viewer
-
-**Log directory:** `{data_path}/Logs`
-
-### Live Logs
-- Follow active log files, streaming new entries as they're written
-- Press `q` or `Ctrl+C` to stop
-
-### Archived Logs
-- Browse by session: select a timestamped folder, then select a log file
-- View using a pager (scroll freely, search with `/`)
-- Located in `{data_path}/Logs/Archive/<timestamp>/`
-
-**Archive behavior:** When the server starts, previous logs are moved to a timestamped folder in `Archive/`.
-
----
-
-## Configuration (`config.json`)
+Settings are stored in `config.json` (created automatically on first run).
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -111,7 +129,17 @@ The most recent downtime duration is used for the estimate. If no previous backu
 - Server executable: `{server_path}/server.sh`
 - Server backups: `{server_path}/backups`
 
----
+Press `c` in the TUI to view current configuration.
+
+## Server Commands
+
+Use the **Console** tab to send commands to the server:
+
+| Command | Description |
+|---------|-------------|
+| `announce <text>` | Broadcast message to all players |
+| `genbackup [filename]` | Create world backup |
+| `list clients` | Show online players |
 
 ## Platform Notes
 
@@ -120,5 +148,5 @@ The most recent downtime duration is used for the estimate. If no previous backu
 - Default data path: `/var/vintagestory/data`
 
 ### Windows (Future)
-- Server executable: `{server_path}/VintagestoryServer.exe` (or wrapper script)
-- Default data path: `%AppData%/VintagestoryData` (typical location)
+- Server executable: `{server_path}/VintagestoryServer.exe`
+- Default data path: `%AppData%/VintagestoryData`
