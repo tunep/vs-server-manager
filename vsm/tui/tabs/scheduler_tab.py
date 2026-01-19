@@ -81,7 +81,11 @@ class SchedulerTab(Container):
 
     def _time_until(self, dt: datetime) -> str:
         """Get human-readable time until datetime."""
-        now = datetime.now()
+        # Use timezone-aware now if dt has timezone info
+        if dt.tzinfo is not None:
+            now = datetime.now(dt.tzinfo)
+        else:
+            now = datetime.now()
         diff = dt - now
 
         if diff.total_seconds() < 0:
