@@ -1,0 +1,33 @@
+## Summary
+
+This PR introduces a complete Textual-based TUI for managing Vintage Story dedicated servers, replacing the original CLI approach.
+
+### Key Features
+- **Tab-based interface** with Status, Logs, Backups, Scheduler, and Console tabs
+- **Server control** with Start/Stop/Restart buttons and transitional state display (Starting/Stopping/Restarting)
+- **Live log viewer** with file selection and automatic filtering of status block noise
+- **Backup management** with server state validation - blocks backups during transitional states, shows confirmation dialog when server is running
+- **Editable configuration** - both VSM config and serverconfig.json can be edited via modal dialogs
+- **Scheduled backups** with APScheduler integration and player announcements
+- **Arrow key navigation** for control buttons in Status tab
+
+### Technical Highlights
+- Uses `run_blocking()` worker pattern to run blocking subprocess calls without freezing the UI
+- StatusTab tracks transitional states (`_starting`, `_stopping`, `_restarting`) for accurate UI feedback
+- BackupsTab coordinates with StatusTab to prevent backups during server state transitions
+- Modal screens for config editing with type preservation (int, float, bool, null)
+- Log filtering removes verbose status blocks from server-main.log output
+
+## Test plan
+- [ ] Launch TUI with `vsm` command
+- [ ] Verify server status displays correctly (Running/Stopped/Starting/Stopping)
+- [ ] Test Start/Stop/Restart buttons show appropriate transitional states
+- [ ] Verify logs tab loads files and filters status noise
+- [ ] Test world backup (requires running server)
+- [ ] Test server backup with confirmation dialog when server is running
+- [ ] Verify backups are blocked during Starting/Stopping states
+- [ ] Test config editing (press `c` or Config button)
+- [ ] Test server config editing from Status tab
+- [ ] Verify scheduler tab displays jobs correctly
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
