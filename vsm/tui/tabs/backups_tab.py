@@ -11,6 +11,7 @@ from ...config import load_config
 from ...server import ServerStatus, start, status, stop
 from ..screens.confirm_screen import ConfirmScreen
 from ..workers import run_blocking
+from .status_tab import StatusTab
 
 
 class ServerState(Enum):
@@ -178,14 +179,38 @@ class BackupsTab(Container):
         except Exception as e:
             self.notify(f"Server backup failed: {e}", severity="error")
 
+    def _get_status_tab(self) -> StatusTab | None:
+        """Get the StatusTab instance from the app."""
+        try:
+            return self.app.query_one(StatusTab)
+        except Exception:
+            return None
+
     async def _perform_server_backup_with_restart(self, config: dict) -> None:
         """Stop server, perform backup, and restart."""
+        status_tab = self._get_status_tab()
+
         try:
+            # Set stopping state on StatusTab
+            if status_tab:
+                status_tab._stopping = True
+                status_tab._update_display()
+
             self.notify("Stopping server...")
             await run_blocking(stop, config)
 
+            # Clear stopping state
+            if status_tab:
+                status_tab._stopping = False
+                status_tab._update_display()
+
             self.notify("Creating server backup (this may take a while)...")
             await run_blocking(server_backup, config)
+
+            # Set starting state on StatusTab
+            if status_tab:
+                status_tab._starting = True
+                status_tab._update_display()
 
             self.notify("Restarting server...")
             await run_blocking(start, config)
@@ -196,7 +221,17 @@ class BackupsTab(Container):
             self.notify(f"Server backup failed: {e}", severity="error")
             # Try to restart the server even if backup failed
             try:
+                if status_tab:
+                    status_tab._starting = True
+                    status_tab._update_display()
+
                 self.notify("Attempting to restart server...")
                 await run_blocking(start, config)
             except Exception:
                 self.notify("Failed to restart server", severity="error")
+        finally:
+            # Reset states and refresh status
+            if status_tab:
+                status_tab._stopping = False
+                status_tab._starting = False
+                status_tab.refresh_status()
