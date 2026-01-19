@@ -3,9 +3,10 @@
 from textual.app import ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Button, DataTable, Static, Input
+from textual.widgets import Button, DataTable, Static
 
 from ...config import load_config, save_config, get_config_path
+from .edit_value_screen import EditValueScreen
 
 
 class ConfigScreen(ModalScreen):
@@ -20,7 +21,6 @@ class ConfigScreen(ModalScreen):
         super().__init__()
         self.config = load_config()
         self.original_config = self.config.copy()
-        self.editing_key: str | None = None
 
     def compose(self) -> ComposeResult:
         """Create the config dialog layout."""
@@ -29,9 +29,6 @@ class ConfigScreen(ModalScreen):
             yield Static(f"[dim]{get_config_path()}[/dim]")
             yield Static("[dim]Press Enter to edit, Escape to cancel[/dim]", id="config-help")
             yield DataTable(id="config-table")
-            with Horizontal(id="edit-container", classes="hidden"):
-                yield Static("Value:", classes="edit-label")
-                yield Input(id="edit-input", placeholder="Enter new value")
             with Horizontal(id="config-buttons"):
                 yield Button("Save", id="save-btn", variant="success")
                 yield Button("Cancel", id="cancel-btn", variant="default")
@@ -50,64 +47,40 @@ class ConfigScreen(ModalScreen):
         for key, value in self.config.items():
             table.add_row(key, str(value), key=key)
 
-    def _start_editing(self, key: str) -> None:
-        """Start editing a config value."""
-        self.editing_key = key
-        edit_container = self.query_one("#edit-container")
-        edit_container.remove_class("hidden")
-        edit_input = self.query_one("#edit-input", Input)
-        edit_input.value = str(self.config[key])
-        edit_input.focus()
+    def _open_edit_modal(self, key: str) -> None:
+        """Open the edit modal for a config value."""
+        current_value = str(self.config[key])
 
-    def _stop_editing(self, save: bool = True) -> None:
-        """Stop editing and optionally save the value."""
-        if self.editing_key and save:
-            edit_input = self.query_one("#edit-input", Input)
-            new_value = edit_input.value
-            old_value = self.config[self.editing_key]
+        def handle_edit_result(new_value: str | None) -> None:
+            if new_value is not None:
+                old_value = self.config[key]
+                # Try to preserve the original type
+                if isinstance(old_value, int):
+                    try:
+                        new_value = int(new_value)
+                    except ValueError:
+                        pass
+                elif isinstance(old_value, float):
+                    try:
+                        new_value = float(new_value)
+                    except ValueError:
+                        pass
+                self.config[key] = new_value
+                self._populate_table()
 
-            # Try to preserve the original type
-            if isinstance(old_value, int):
-                try:
-                    new_value = int(new_value)
-                except ValueError:
-                    pass
-            elif isinstance(old_value, float):
-                try:
-                    new_value = float(new_value)
-                except ValueError:
-                    pass
-
-            self.config[self.editing_key] = new_value
-            self._populate_table()
-
-        self.editing_key = None
-        edit_container = self.query_one("#edit-container")
-        edit_container.add_class("hidden")
-        self.query_one("#config-table", DataTable).focus()
+        self.app.push_screen(EditValueScreen(key, current_value), handle_edit_result)
 
     def action_edit_selected(self) -> None:
         """Edit the currently selected row."""
-        if self.editing_key:
-            self._stop_editing(save=True)
-            return
-
         table = self.query_one("#config-table", DataTable)
         if table.cursor_row is not None:
-            row_key = table.get_row_at(table.cursor_row)
-            if row_key:
-                key = list(self.config.keys())[table.cursor_row]
-                self._start_editing(key)
+            key = list(self.config.keys())[table.cursor_row]
+            self._open_edit_modal(key)
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle row double-click to edit."""
         if event.row_key and event.row_key.value:
-            self._start_editing(str(event.row_key.value))
-
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Handle input submission."""
-        if event.input.id == "edit-input":
-            self._stop_editing(save=True)
+            self._open_edit_modal(str(event.row_key.value))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
@@ -120,7 +93,4 @@ class ConfigScreen(ModalScreen):
 
     def action_cancel(self) -> None:
         """Cancel and close the screen."""
-        if self.editing_key:
-            self._stop_editing(save=False)
-        else:
-            self.dismiss()
+        self.dismiss()

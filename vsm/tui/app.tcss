@@ -190,25 +190,6 @@ ConfigScreen {
     margin-bottom: 1;
 }
 
-#edit-container {
-    height: auto;
-    padding: 1 0;
-    align: left middle;
-}
-
-#edit-container.hidden {
-    display: none;
-}
-
-#edit-container .edit-label {
-    width: auto;
-    padding-right: 1;
-}
-
-#edit-container Input {
-    width: 1fr;
-}
-
 /* Server Config Screen */
 ServerConfigScreen {
     align: center middle;
@@ -241,23 +222,35 @@ ServerConfigScreen {
     margin-bottom: 1;
 }
 
-#server-edit-container {
+/* Edit Value Screen */
+EditValueScreen {
+    align: center middle;
+}
+
+#edit-value-dialog {
+    width: 50;
     height: auto;
-    padding: 1 0;
-    align: left middle;
+    border: thick $accent;
+    background: $surface;
+    padding: 1 2;
 }
 
-#server-edit-container.hidden {
-    display: none;
+#edit-value-dialog .title {
+    margin-bottom: 1;
 }
 
-#server-edit-container .edit-label {
-    width: auto;
-    padding-right: 1;
+#edit-value-dialog Input {
+    width: 100%;
+    margin-bottom: 1;
 }
 
-#server-edit-container Input {
-    width: 1fr;
+#edit-value-buttons {
+    height: auto;
+    align: center middle;
+}
+
+#edit-value-buttons Button {
+    margin: 0 1;
 }
 
 /* General button styling */
