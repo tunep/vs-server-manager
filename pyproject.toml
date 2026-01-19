@@ -27,10 +27,13 @@ dependencies = [
     "apscheduler>=3.10",
     "rich>=13.0",
     "textual>=0.50.0",
+    "psutil>=5.9.0",
+    "jsonrpc-py>=1.13",
 ]
 
 [project.scripts]
 vsm = "vsm.tui:main"
+vsm-scheduler = "vsm.daemon:main"
 
 [project.optional-dependencies]
 dev = [

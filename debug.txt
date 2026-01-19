@@ -1,33 +1,19 @@
-## Summary
+feat(scheduler): Implement cross-platform background daemon
 
-This PR introduces a complete Textual-based TUI for managing Vintage Story dedicated servers, replacing the original CLI approach.
+This commit introduces a background daemon for the scheduler, allowing it to run independently of the main TUI application. This ensures that scheduled backups and announcements continue to run even when the TUI is not active.
 
-### Key Features
-- **Tab-based interface** with Status, Logs, Backups, Scheduler, and Console tabs
-- **Server control** with Start/Stop/Restart buttons and transitional state display (Starting/Stopping/Restarting)
-- **Live log viewer** with file selection and automatic filtering of status block noise
-- **Backup management** with server state validation - blocks backups during transitional states, shows confirmation dialog when server is running
-- **Editable configuration** - both VSM config and serverconfig.json can be edited via modal dialogs
-- **Scheduled backups** with APScheduler integration and player announcements
-- **Arrow key navigation** for control buttons in Status tab
+The implementation has been designed to be cross-platform, working on both Linux and Windows systems.
 
-### Technical Highlights
-- Uses `run_blocking()` worker pattern to run blocking subprocess calls without freezing the UI
-- StatusTab tracks transitional states (`_starting`, `_stopping`, `_restarting`) for accurate UI feedback
-- BackupsTab coordinates with StatusTab to prevent backups during server state transitions
-- Modal screens for config editing with type preservation (int, float, bool, null)
-- Log filtering removes verbose status blocks from server-main.log output
+Key changes include:
 
-## Test plan
-- [ ] Launch TUI with `vsm` command
-- [ ] Verify server status displays correctly (Running/Stopped/Starting/Stopping)
-- [ ] Test Start/Stop/Restart buttons show appropriate transitional states
-- [ ] Verify logs tab loads files and filters status noise
-- [ ] Test world backup (requires running server)
-- [ ] Test server backup with confirmation dialog when server is running
-- [ ] Verify backups are blocked during Starting/Stopping states
-- [ ] Test config editing (press `c` or Config button)
-- [ ] Test server config editing from Status tab
-- [ ] Verify scheduler tab displays jobs correctly
+- **New `vsm-scheduler` Command:** A new entry point (`vsm-scheduler`) has been added to manage the daemon's lifecycle with `start`, `stop`, `restart`, and `status` commands.
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+- **Cross-Platform Process Management:** The Linux-specific `python-daemon` library has been replaced with `psutil` and the standard `subprocess` module. This allows for robust, cross-platform management of the background process.
+
+- **Background Process Script:** A new `vsm/background.py` script contains the core logic for the scheduler and RPC server that runs in the detached process.
+
+- **Daemon Manager:** The `vsm/daemon.py` script now acts as a cross-platform manager, responsible for launching and managing the background process.
+
+- **RPC Communication:** A simple JSON-RPC server (`vsm/rpc.py`) is implemented to facilitate communication between the TUI and the background scheduler daemon. This allows the TUI to get status and job information.
+
+- **TUI Integration:** The Scheduler tab in the TUI has been updated to interact with the new daemon via the RPC client. It now displays the status of the background daemon and uses the `vsm-scheduler` command to start and stop it.

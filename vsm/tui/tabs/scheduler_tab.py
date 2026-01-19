@@ -1,29 +1,36 @@
 """Scheduler tab for VSM TUI."""
 
-from datetime import datetime, timedelta
+import subprocess
+import sys
+from datetime import datetime
 
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Button, DataTable, Static
 
 from ...config import load_config
-from ...scheduler import get_scheduler, SchedulerState
+from ...rpc import SchedulerRPCClient
+from ...scheduler import SchedulerState
 
 
 class SchedulerTab(Container):
     """Scheduler status and control tab."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.rpc_client = SchedulerRPCClient(load_config())
+
     def compose(self) -> ComposeResult:
         """Create the scheduler tab layout."""
         with Vertical(id="scheduler-status"):
-            yield Static("SCHEDULER STATUS", classes="panel-title")
+            yield Static("SCHEDULER DAEMON", classes="panel-title")
             yield Static("Status: [dim]Loading...[/dim]", id="sched-status")
             yield Static("Next backup: [dim]--[/dim]", id="sched-next")
         yield Static("SCHEDULED JOBS", classes="panel-title")
         yield DataTable(id="scheduler-jobs")
         with Horizontal(id="scheduler-controls"):
-            yield Button("Start Scheduler", id="btn-start-sched", variant="success")
-            yield Button("Stop Scheduler", id="btn-stop-sched", variant="error")
+            yield Button("Start Daemon", id="btn-start-sched", variant="success")
+            yield Button("Stop Daemon", id="btn-stop-sched", variant="error")
             yield Button("Refresh", id="btn-refresh-sched")
 
     def on_mount(self) -> None:
@@ -34,27 +41,34 @@ class SchedulerTab(Container):
         self.set_interval(10, self.refresh_status)
 
     def refresh_status(self) -> None:
-        """Refresh scheduler status."""
-        scheduler = get_scheduler()
-        state = scheduler.get_state()
-
-        # Update status
+        """Refresh scheduler status via RPC."""
         status_widget = self.query_one("#sched-status", Static)
-        if state == SchedulerState.RUNNING:
+        table = self.query_one("#scheduler-jobs", DataTable)
+        next_backup_widget = self.query_one("#sched-next", Static)
+
+        status_response = self.rpc_client.get_status()
+
+        if status_response.get("error"):
+            status_widget.update("Status: [red]Daemon Unreachable[/red]")
+            table.clear()
+            table.add_row("Could not connect to scheduler daemon.", "", "")
+            next_backup_widget.update("Next backup: --")
+            return
+
+        state = status_response.get("status")
+
+        if state == SchedulerState.RUNNING.value:
             status_widget.update("Status: [green]Running[/green]")
-        elif state == SchedulerState.PAUSED:
-            status_widget.update("Status: [yellow]Paused[/yellow]")
         else:
-            status_widget.update("Status: [red]Stopped[/red]")
+            status_widget.update(f"Status: [yellow]{state.capitalize() if state else 'Unknown'}[/yellow]")
 
         # Update jobs table
-        table = self.query_one("#scheduler-jobs", DataTable)
         table.clear()
+        jobs = self.rpc_client.get_jobs()
 
-        jobs = scheduler.get_jobs()
         if not jobs:
             table.add_row("No jobs scheduled", "--", "--")
-            self.query_one("#sched-next", Static).update("Next backup: --")
+            next_backup_widget.update("Next backup: --")
         else:
             next_run = None
             for job in jobs:
@@ -63,6 +77,7 @@ class SchedulerTab(Container):
                 next_run_time = job.get("next_run_time")
 
                 if next_run_time:
+                    # next_run_time is already a datetime object from the client
                     next_str = self._time_until(next_run_time)
                     if next_run is None or next_run_time < next_run:
                         next_run = next_run_time
@@ -73,51 +88,76 @@ class SchedulerTab(Container):
 
             # Update next backup display
             if next_run:
-                self.query_one("#sched-next", Static).update(
+                next_backup_widget.update(
                     f"Next backup: {next_run.strftime('%H:%M')} ({self._time_until(next_run)})"
                 )
             else:
-                self.query_one("#sched-next", Static).update("Next backup: --")
+                next_backup_widget.update("Next backup: --")
 
     def _time_until(self, dt: datetime) -> str:
         """Get human-readable time until datetime."""
-        # Use timezone-aware now if dt has timezone info
-        if dt.tzinfo is not None:
+        if dt.tzinfo:
             now = datetime.now(dt.tzinfo)
         else:
             now = datetime.now()
+
+        if dt.tzinfo is None and now.tzinfo is not None:
+            now = now.astimezone(None)
+
         diff = dt - now
 
         if diff.total_seconds() < 0:
-            return "now"
+            return "recently"
 
-        hours, remainder = divmod(int(diff.total_seconds()), 3600)
+        seconds = int(diff.total_seconds())
+        hours, remainder = divmod(seconds, 3600)
         minutes, _ = divmod(remainder, 60)
 
         if hours > 0:
             return f"in {hours}h {minutes}m"
-        return f"in {minutes}m"
+        if minutes > 0:
+            return f"in {minutes}m"
+        return "in <1m"
+
+    def _run_command(self, command: list[str]):
+        """Run a shell command and notify the user."""
+        try:
+            # Use the same Python executable that's running the TUI
+            process = subprocess.Popen(
+                [sys.executable, "-m", "vsm.daemon"] + command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding='utf-8'
+            )
+            stdout, stderr = process.communicate(timeout=15)
+
+            if process.returncode == 0:
+                self.notify(f"Command '{' '.join(command)}' successful.", severity="information")
+                if stdout:
+                    self.notify(stdout.strip(), title="Output")
+            else:
+                self.notify(f"Command '{' '.join(command)}' failed.", severity="error", timeout=10)
+                error_message = stderr.strip() if stderr else "No error output."
+                self.notify(error_message, title="Error Output", timeout=10)
+
+        except FileNotFoundError:
+            self.notify("Error: 'vsm-scheduler' command not found in PATH.", severity="error")
+        except subprocess.TimeoutExpired:
+            self.notify("Command timed out.", severity="error")
+        except Exception as e:
+            self.notify(f"An unexpected error occurred: {e}", severity="error")
+
+        self.refresh_status()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        scheduler = get_scheduler()
-
         if event.button.id == "btn-start-sched":
-            try:
-                config = load_config()
-                scheduler.start(config)
-                self.notify("Scheduler started", severity="information")
-                self.refresh_status()
-            except Exception as e:
-                self.notify(f"Failed to start scheduler: {e}", severity="error")
-
+            self.notify("Attempting to start daemon in background...")
+            self._run_command(["start"])
         elif event.button.id == "btn-stop-sched":
-            try:
-                scheduler.stop()
-                self.notify("Scheduler stopped", severity="information")
-                self.refresh_status()
-            except Exception as e:
-                self.notify(f"Failed to stop scheduler: {e}", severity="error")
-
+            self.notify("Attempting to stop daemon...")
+            self._run_command(["stop"])
         elif event.button.id == "btn-refresh-sched":
             self.refresh_status()
+            self.notify("Scheduler status refreshed.")
