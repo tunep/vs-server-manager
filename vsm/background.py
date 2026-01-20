@@ -99,7 +99,8 @@ def main():
     # Keep the main thread alive, listening for signals
     try:
         while True:
-            time.sleep(1)
+            time.sleep(5)
+            logger.info("Heartbeat")
     except KeyboardInterrupt:
         pass
 
