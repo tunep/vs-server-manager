@@ -11,6 +11,8 @@ import time
 from logging.handlers import RotatingFileHandler
 
 from .config import get_config_path, load_config
+from .rpc import SchedulerRPCServer
+from .scheduler import get_scheduler
 
 PID_NAME = "vsm-scheduler.pid"
 PID_DIR = get_config_path().parent
