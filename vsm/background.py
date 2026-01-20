@@ -9,16 +9,21 @@ import signal
 import sys
 import time
 from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from .config import get_config_path, load_config
 from .rpc import SchedulerRPCServer
 from .scheduler import get_scheduler
 
 PID_NAME = "vsm-scheduler.pid"
+READY_NAME = "vsm-scheduler.ready"
 
 PID_DIR = get_config_path().parent
 
 LOG_FILE = PID_DIR / "vsm-scheduler.log"
+
+# Path to this module's directory - used to detect if source files are removed
+_MODULE_DIR = Path(__file__).parent
 
 
 def setup_logging():
@@ -53,6 +58,20 @@ def write_pid_file():
     PID_DIR.mkdir(parents=True, exist_ok=True)
     with open(PID_DIR / PID_NAME, "w") as f:
         f.write(str(os.getpid()))
+
+
+def check_source_files_exist():
+    """Check if the vsm module source files still exist.
+
+    Returns True if files exist, False if they've been removed (e.g., repo was deleted).
+    """
+    # Check for key files that should always exist
+    critical_files = [
+        _MODULE_DIR / "__init__.py",
+        _MODULE_DIR / "background.py",
+        _MODULE_DIR / "scheduler.py",
+    ]
+    return all(f.exists() for f in critical_files)
 
 
 def main():
@@ -97,9 +116,26 @@ def main():
     signal.signal(signal.SIGINT, handle_shutdown_signal)
 
     # Keep the main thread alive, listening for signals
+    # Also check periodically if source files still exist
     try:
         while True:
             time.sleep(60)
+            # Check if source files have been removed (e.g., repo was recloned)
+            if not check_source_files_exist():
+                logger.warning(
+                    "Source files no longer exist (repo may have been removed). "
+                    "Shutting down daemon..."
+                )
+                rpc_server.stop()
+                scheduler.stop()
+                # Clean up PID and ready files
+                try:
+                    (PID_DIR / PID_NAME).unlink(missing_ok=True)
+                    (PID_DIR / READY_NAME).unlink(missing_ok=True)
+                except OSError:
+                    pass
+                logger.info("Daemon terminated due to missing source files.")
+                sys.exit(0)
     except KeyboardInterrupt:
         pass
 
