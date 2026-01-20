@@ -9,7 +9,7 @@ The application provides a tab-based interface for:
 *   **Server Control:** Starting, stopping, and restarting the server, with accurate transitional state tracking.
 *   **Log Viewing:** Real-time log monitoring with file selection and automatic filtering of status block noise.
 *   **Backup Management:** Creating world and server backups with server state validation and confirmation dialogs.
-*   **Task Scheduling:** Automating backups and server announcements.
+*   **Scheduler Daemon:** Background daemon with RPC interface for automated backups and announcements.
 *   **Server Console:** Sending commands directly to the game server.
 *   **Configuration Editing:** Edit both VSM config and server config (serverconfig.json) via modal dialogs.
 
@@ -38,7 +38,9 @@ The project is currently designed for Linux-based systems, with plans for future
     vsm
     ```
 
-The main entry point for the application is `vsm.tui:main`, as defined in `pyproject.toml`.
+Entry points (defined in `pyproject.toml`):
+*   `vsm` → `vsm.tui:main` - Main TUI application
+*   `vsm-scheduler` → `vsm.daemon:main` - Scheduler daemon manager
 
 ### Testing
 
@@ -70,6 +72,9 @@ pytest
     *   `vsm/config.py`: Manages application configuration from a `config.json` file.
     *   `vsm/logs.py`: Log file reading with filtering to remove status block noise.
     *   `vsm/downtime.py`: Tracks server downtime for backup duration estimates.
+    *   `vsm/rpc.py`: JSON-RPC server and client for scheduler daemon communication.
+    *   `vsm/daemon.py`: Daemon process management (start, stop, status).
+    *   `vsm/background.py`: Background process entry point with logging and signal handling.
 *   **Configuration:** The application is configured via a `config.json` file, which is created on the first run. Server-specific settings are in `serverconfig.json` within the data directory.
 
 ## Key Files
@@ -81,8 +86,12 @@ pytest
 *   `vsm/tui/screens/server_config_screen.py`: Editable server configuration screen.
 *   `vsm/tui/screens/confirm_screen.py`: Confirmation dialog for destructive actions.
 *   `vsm/tui/tabs/status_tab.py`: Server status display with transitional state tracking.
+*   `vsm/tui/tabs/scheduler_tab.py`: Scheduler daemon control with RPC client integration.
 *   `vsm/tui/tabs/backups_tab.py`: Backup management with server state validation.
 *   `vsm/backup.py`: Contains the core logic for world and server backups.
-*   `vsm/scheduler.py`: Implements the background scheduler for automated tasks.
+*   `vsm/scheduler.py`: APScheduler-based scheduler with job advancement and announcements.
+*   `vsm/rpc.py`: JSON-RPC server (for daemon) and client (for TUI).
+*   `vsm/daemon.py`: Daemon lifecycle management.
+*   `vsm/background.py`: Background process entry point.
 *   `vsm/server.py`: Manages the server process and communication.
 *   `config.json`: Stores user-configurable settings for the application.
