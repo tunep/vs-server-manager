@@ -71,6 +71,42 @@ The app controls Vintage Story via a `server.sh` wrapper script:
 
 Status parsing uses regex to extract version, uptime, players, and memory from the script's output.
 
+## Versioning
+
+The project follows [Semantic Versioning](https://semver.org/). When incrementing the version, update **all three locations**:
+
+1. `pyproject.toml` - line 7: `version = "X.Y.Z"`
+2. `vsm/__init__.py` - line 3: `__version__ = "X.Y.Z"`
+3. `CLAUDE.md` - line 10: `**Version:** X.Y.Z`
+
+### Version Format
+
+- **MAJOR** (X): Breaking changes or major feature overhauls
+- **MINOR** (Y): New features, backward-compatible
+- **PATCH** (Z): Bug fixes, minor improvements
+
+### Branch Workflow
+
+- **Feature branches**: Do not change the version. Keep it in sync with `main`.
+- **Main branch**: Bump the version on `main` when preparing a release.
+- **Release process**: After merging features, bump the version and tag the release:
+  ```bash
+  # After updating all three version files:
+  git add pyproject.toml vsm/__init__.py CLAUDE.md
+  git commit -m "Bump version to X.Y.Z"
+  git tag vX.Y.Z
+  git push origin main --tags
+  ```
+
+### Example
+
+To bump from `0.2.0` to `0.3.0`:
+
+```bash
+# Update all three files, then verify:
+grep -r "0.3.0" pyproject.toml vsm/__init__.py CLAUDE.md
+```
+
 ## Dependencies
 
 - `textual>=0.50.0` - TUI framework
