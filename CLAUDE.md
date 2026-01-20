@@ -29,14 +29,18 @@ pytest                    # Run tests
 
 ### Entry Point
 `vsm` CLI command → `vsm.tui:main()` → launches `VSMApp` (Textual app)
+`vsm-scheduler` CLI command → `vsm.daemon:main()` → manages scheduler daemon
 
 ### Core Modules (`vsm/`)
 - `config.py` - JSON config loading/saving, path helpers (`get_data_path`, `get_server_executable`, etc.)
 - `server.py` - Server control via `server.sh` subprocess calls (start, stop, status, command)
 - `backup.py` - World backups (via server's `genbackup`) and server backups (tar.gz archives)
-- `scheduler.py` - APScheduler-based background jobs for automated backups with player announcements
+- `scheduler.py` - APScheduler-based scheduler with job advancement, backup jobs, and announcements
 - `downtime.py` - Tracks server downtime for backup duration estimates
 - `logs.py` - Log file reading with filtering for status block noise
+- `rpc.py` - JSON-RPC server and client for scheduler daemon communication
+- `daemon.py` - Daemon process management (start, stop, status)
+- `background.py` - Background process entry point with logging and signal handling
 
 ### TUI Layer (`vsm/tui/`)
 - `app.py` - Main `VSMApp` class with tab navigation and keybindings
@@ -52,10 +56,12 @@ pytest                    # Run tests
 
 - **Blocking Operations**: All server commands are blocking subprocess calls. The TUI uses `run_blocking()` from `workers.py` to run them in a `ThreadPoolExecutor` without freezing the UI.
 - **Tab Architecture**: Each tab inherits from `Container` and implements `compose()` for layout. Tabs refresh via workers and update widgets directly.
-- **Scheduler Singleton**: `VSMScheduler.get_instance()` returns the global scheduler. The scheduler runs APScheduler in background mode and manages backup jobs + announcement scheduling.
+- **Scheduler Architecture**: The scheduler runs as a separate daemon process (`vsm-scheduler`). The TUI communicates with it via JSON-RPC. `VSMScheduler.get_instance()` manages the APScheduler instance in the daemon.
+- **RPC Communication**: `SchedulerRPCServer` exposes methods via JSON-RPC 2.0 on port 8585. `SchedulerRPCClient` in the TUI calls these methods. Methods are registered using the `@rpc_server.method(name=...)` decorator pattern.
 - **Config Flow**: `load_config()` auto-creates `config.json` with defaults. All path functions (`get_data_path`, etc.) expand `~` and return `Path` objects.
 - **Server State Management**: StatusTab tracks transitional states (`_starting`, `_stopping`, `_restarting`) to provide accurate UI feedback. BackupsTab checks these states before allowing manual backups.
 - **Modal Dialogs**: Use `push_screen_wait()` for confirmation dialogs that need to block until user responds.
+- **Daemon Files**: PID, log, and ready files are stored in `~/.config/vintage-story-backup/`.
 
 ## Server Interaction
 
@@ -69,4 +75,6 @@ Status parsing uses regex to extract version, uptime, players, and memory from t
 
 - `textual>=0.50.0` - TUI framework
 - `apscheduler>=3.10` - Background job scheduling
+- `openrpc>=0.3.0` - JSON-RPC server/client for daemon communication
+- `psutil>=5.9.0` - Process utilities for daemon management
 - `rich>=13.0` - Terminal formatting (used by Textual)
