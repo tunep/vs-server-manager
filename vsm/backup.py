@@ -1,6 +1,5 @@
 """Backup operations for Vintage Story Server Manager."""
 
-import shutil
 import tarfile
 from datetime import datetime
 from pathlib import Path
@@ -29,12 +28,15 @@ def server_backup(config: dict | None = None, manual: bool = False) -> str:
 
     Archives {data_path} to {server_path}/backups/<type>-YYYY-MM-DD_HH-MM-SS.tar.gz
     where <type> is 'manual' or 'scheduled'.
+
+    Excludes data/Backups directory (world backups) from the archive.
     """
     if config is None:
         config = load_config()
 
     data_path = get_data_path(config)
     backups_path = get_server_backups_path(config)
+    world_backups_path = get_world_backups_path(config)
 
     # Ensure backup directory exists
     backups_path.mkdir(parents=True, exist_ok=True)
@@ -45,33 +47,32 @@ def server_backup(config: dict | None = None, manual: bool = False) -> str:
     backup_filename = f"{backup_type}-{timestamp}.tar.gz"
     backup_path = backups_path / backup_filename
 
+    def exclude_world_backups(tarinfo: tarfile.TarInfo) -> tarfile.TarInfo | None:
+        """Filter to exclude the world backups directory."""
+        # Get the full path being added
+        full_path = data_path / tarinfo.name.split("/", 1)[-1] if "/" in tarinfo.name else data_path
+        # Exclude if it's the world backups directory or anything inside it
+        if full_path == world_backups_path or world_backups_path in full_path.parents:
+            return None
+        return tarinfo
+
     # Create tar.gz archive with fast compression (level 1)
     with tarfile.open(backup_path, "w:gz", compresslevel=1) as tar:
-        tar.add(data_path, arcname=data_path.name)
+        tar.add(data_path, arcname=data_path.name, filter=exclude_world_backups)
 
     return f"Server backup created: {backup_path}"
 
 
 def cleanup_after_server_backup(config: dict | None = None) -> str:
     """
-    Clean up world backups and logs folders after a server backup.
+    Clean up logs folder after a server backup.
 
-    This prevents duplicate data since server backups include these folders.
+    World backups are preserved since they are excluded from server backups.
     """
     if config is None:
         config = load_config()
 
     messages = []
-
-    # Clear world backups folder
-    world_backups = get_world_backups_path(config)
-    if world_backups.exists():
-        for item in world_backups.iterdir():
-            if item.is_file():
-                item.unlink()
-            elif item.is_dir():
-                shutil.rmtree(item)
-        messages.append(f"Cleared world backups: {world_backups}")
 
     # Clear logs folder (but keep Archive structure)
     logs_path = get_logs_path(config)
