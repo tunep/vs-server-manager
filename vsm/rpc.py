@@ -7,7 +7,7 @@ import threading
 from datetime import datetime
 from typing import Any
 
-from openrpc import RPCServer, RPCClient
+from openrpc import RPCServer
 
 from .scheduler import VSMScheduler, SchedulerState
 
