@@ -37,13 +37,15 @@ class SchedulerRPCServer(threading.Thread):
     def _register_methods(self):
         """Register scheduler methods with the RPC server."""
 
-        # Define wrapper functions that call scheduler methods
-        def get_status_wrapper() -> dict:
+        # Use the decorator syntax to register methods
+        @self.rpc_server.method(name="get_status")
+        def get_status() -> dict:
             """Get the scheduler status."""
             state = self.scheduler.get_state()
             return {"status": state.value}
 
-        def get_jobs_wrapper() -> list[dict]:
+        @self.rpc_server.method(name="get_jobs")
+        def get_jobs() -> list[dict]:
             """Get the list of scheduled jobs."""
             jobs = self.scheduler.get_jobs()
             # Convert datetime objects to strings for serialization
@@ -51,11 +53,6 @@ class SchedulerRPCServer(threading.Thread):
                 if job.get("next_run_time"):
                     job["next_run_time"] = job["next_run_time"].isoformat()
             return jobs
-
-        # Register these wrapper functions with the openrpc server
-        # The 'name' argument specifies the RPC method name
-        self.rpc_server.method(get_status_wrapper, "get_status")
-        self.rpc_server.method(get_jobs_wrapper, "get_jobs")
         
     def run(self):
         """Start the RPC server."""
