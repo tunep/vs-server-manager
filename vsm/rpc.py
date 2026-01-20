@@ -2,6 +2,7 @@
 
 import functools
 import json
+import logging
 import socket
 import threading
 from datetime import datetime
@@ -14,6 +15,8 @@ from .scheduler import VSMScheduler, SchedulerState
 
 
 READY_NAME = "vsm-scheduler.ready"
+
+logger = logging.getLogger("VSMScheduler")
 
 
 class SchedulerRPCServer(threading.Thread):
@@ -56,31 +59,44 @@ class SchedulerRPCServer(threading.Thread):
         
     def run(self):
         """Start the RPC server."""
+        logger.info(f"RPC server starting on {self.host}:{self.port}")
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind((self.host, self.port))
+        try:
+            self.server_socket.bind((self.host, self.port))
+        except Exception as e:
+            logger.error(f"RPC server failed to bind: {e}")
+            return
         self.server_socket.listen(1)
+        logger.info(f"RPC server listening on {self.host}:{self.port}")
 
         # Signal that the server is ready
         (self.pid_dir / READY_NAME).touch()
 
         while True:
             try:
-                conn, _ = self.server_socket.accept()
+                logger.debug("RPC server waiting for connection...")
+                conn, addr = self.server_socket.accept()
+                logger.info(f"RPC server accepted connection from {addr}")
                 with conn:
                     data = conn.recv(4096)
                     if not data:
+                        logger.warning("RPC server received empty data")
                         continue
-                    
+
+                    logger.info(f"RPC server received: {data.decode()}")
                     # Process the request using the openrpc server
                     response_json = self.rpc_server.handle(data.decode())
+                    logger.info(f"RPC server response: {response_json}")
                     if response_json:
                         conn.sendall(response_json.encode())
-            except (socket.error, ConnectionResetError):
+                    else:
+                        logger.warning("RPC server handle() returned None/empty")
+            except (socket.error, ConnectionResetError) as e:
+                logger.info(f"RPC server socket closed: {e}")
                 break # Exit loop if socket is closed or connection reset
-            except Exception:
-                # In a real app, log this exception
-                pass
+            except Exception as e:
+                logger.error(f"RPC server error: {e}", exc_info=True)
     
     def stop(self):
         """Stop the RPC server."""
