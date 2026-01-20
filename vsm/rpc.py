@@ -119,6 +119,8 @@ class SchedulerRPCClient:
     def get_status(self) -> dict:
         """Get the scheduler status from the daemon."""
         response = self._send_request("get_status")
+        if "error" in response:
+            return response
         return response.get("result", {})
 
     def get_jobs(self) -> list[dict]:
