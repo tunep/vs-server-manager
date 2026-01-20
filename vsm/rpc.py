@@ -46,8 +46,8 @@ class SchedulerRPCServer(threading.Thread):
 
         # Register these wrapper functions with the openrpc server
         # The 'name' argument specifies the RPC method name
-        self.rpc_server.method(get_status_wrapper, name="get_status")
-        self.rpc_server.method(get_jobs_wrapper, name="get_jobs")
+        self.rpc_server.method(get_status_wrapper, "get_status")
+        self.rpc_server.method(get_jobs_wrapper, "get_jobs")
         
     def run(self):
         """Start the RPC server."""
