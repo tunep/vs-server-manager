@@ -10,7 +10,7 @@ A Python TUI for managing a Vintage Story dedicated server.
 - **Server Control** - Start, stop, restart with transitional state display (Starting/Stopping)
 - **Live Logs** - Real-time log viewer with file selection and automatic noise filtering
 - **Backup Management** - World and server backups with state validation and confirmation dialogs
-- **Scheduler** - Background backup scheduling with player announcements
+- **Scheduler Daemon** - Background scheduler with RPC interface for automated backups and announcements
 - **Server Console** - Send commands directly to the server
 - **Configuration Editing** - Edit VSM and server configs via modal dialogs
 
@@ -55,7 +55,7 @@ Launch with `vsm` to open the terminal user interface.
 | **Status** | Server status (Running/Stopped/Starting/Stopping), version, uptime, players, memory. Dynamic control buttons and Config button for server settings. |
 | **Logs** | Log viewer with file selection dropdown. Automatically filters status block noise. |
 | **Backups** | List of server backups. World Backup (requires running server) and Server Backup (with confirmation if server running) buttons. |
-| **Scheduler** | Scheduler status, scheduled jobs, and Start/Stop controls |
+| **Scheduler** | Daemon status, scheduled jobs with next run times, Start/Stop/Advance controls, and log viewer |
 | **Console** | Send commands to the server and view output |
 
 ### Key Bindings
@@ -84,14 +84,32 @@ Launch with `vsm` to open the terminal user interface.
 3. **Skips world backup** when a server backup is scheduled for the same hour
 4. Old server backups are pruned (default: keep 7)
 
-### Scheduler
+### Scheduler Daemon
 
-Start the scheduler from the **Scheduler** tab. It runs in the background and:
+The scheduler runs as a background daemon process, separate from the TUI. Start it from the **Scheduler** tab or via CLI:
 
-- Schedules world backups at the configured interval
-- Schedules server backups at the configured interval
-- Announces upcoming server backups to online players
-- Tracks downtime for accurate estimates
+```bash
+vsm-scheduler start   # Start the daemon
+vsm-scheduler stop    # Stop the daemon
+vsm-scheduler status  # Check daemon status
+```
+
+The daemon provides:
+
+- Automated world backups at the configured interval
+- Automated server backups at the configured interval
+- Player announcements before server backups
+- Downtime tracking for accurate estimates
+- RPC interface for TUI communication (default: 127.0.0.1:8585)
+
+**Scheduler Tab Controls:**
+| Button | Action |
+|--------|--------|
+| Start Daemon | Launch the background scheduler |
+| Stop Daemon | Terminate the scheduler daemon |
+| Advance 1m | Advance all jobs by 1 minute (for testing) |
+| Refresh | Manually refresh status |
+| View Log | Open scheduler log file |
 
 ### Announcements
 
@@ -122,12 +140,19 @@ Settings are stored in `config.json` (created automatically on first run).
 | `world_backup_interval` | `1` | Hours between world backups |
 | `server_backup_interval` | `6` | Hours between server backups |
 | `max_server_backups` | `7` | Server backups to retain |
+| `rpc_host` | `127.0.0.1` | RPC server host |
+| `rpc_port` | `8585` | RPC server port |
 
 **Derived paths:**
 - Logs: `{data_path}/Logs`
 - World backups: `{data_path}/Backups`
 - Server executable: `{server_path}/server.sh`
 - Server backups: `{server_path}/backups`
+
+**Daemon files** (in `~/.config/vintage-story-backup/`):
+- `vsm-scheduler.pid` - Process ID file
+- `vsm-scheduler.log` - Rotating log file
+- `vsm-scheduler.ready` - Ready signal file
 
 Press `c` in the TUI to view current configuration.
 
