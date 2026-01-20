@@ -54,6 +54,8 @@ Then run pytest:
 pytest
 ```
 
+**NOTE: Do not run tests in the current environment.**
+
 ## Development Conventions
 
 *   **Formatting:** The project uses `black` for code formatting and `ruff` for linting. Configuration for these tools can be found in `pyproject.toml`.
