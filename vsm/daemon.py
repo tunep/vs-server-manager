@@ -10,11 +10,11 @@ import time
 
 import psutil
 
-from .config import get_config_dir, load_config
+from .config import get_config_path, load_config
 from .rpc import SchedulerRPCClient
 
 PID_NAME = "vsm-scheduler.pid"
-PID_DIR = get_config_dir()
+PID_DIR = get_config_path().parent
 PID_FILE = PID_DIR / PID_NAME
 
 
