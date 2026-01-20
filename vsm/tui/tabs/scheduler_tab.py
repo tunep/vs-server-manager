@@ -134,7 +134,7 @@ class SchedulerTab(Container):
                 text=True,
                 encoding='utf-8'
             )
-            stdout, stderr = process.communicate(timeout=15)
+            stdout, stderr = process.communicate(timeout=20)
 
             if process.returncode == 0:
                 self.notify(f"Command '{' '.join(command)}' successful.", severity="information")

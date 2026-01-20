@@ -15,9 +15,9 @@ from .rpc import SchedulerRPCServer
 from .scheduler import get_scheduler
 
 PID_NAME = "vsm-scheduler.pid"
-READY_NAME = "vsm-scheduler.ready"
 
 PID_DIR = get_config_path().parent
+
 LOG_FILE = PID_DIR / "vsm-scheduler.log"
 
 
@@ -72,13 +72,10 @@ def main():
         scheduler.start(config)
 
         # Start RPC server to listen for commands
-        rpc_server = SchedulerRPCServer(scheduler, config)
+        rpc_server = SchedulerRPCServer(scheduler, config, PID_DIR)
         rpc_server.start()  # This is a Thread, so it's non-blocking
 
         logger.info("VSM Background Process started successfully.")
-
-        # Signal that we are ready
-        (PID_DIR / READY_NAME).touch()
 
     except Exception:
         logger.critical("An unhandled exception occurred", exc_info=True)
@@ -88,10 +85,9 @@ def main():
         logger.info(f"Received signal {signum}. Shutting down...")
         rpc_server.stop()
         scheduler.stop()
-        # Clean up PID and ready files
+        # Clean up PID file
         try:
             (PID_DIR / PID_NAME).unlink(missing_ok=True)
-            (PID_DIR / READY_NAME).unlink(missing_ok=True)
         except OSError:
             pass
         logger.info("Shutdown complete.")

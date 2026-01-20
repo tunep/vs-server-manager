@@ -5,6 +5,7 @@ import json
 import socket
 import threading
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from openrpc import RPCServer
@@ -12,13 +13,17 @@ from openrpc import RPCServer
 from .scheduler import VSMScheduler, SchedulerState
 
 
+READY_NAME = "vsm-scheduler.ready"
+
+
 class SchedulerRPCServer(threading.Thread):
     """A simple OpenRPC server for the VSM Scheduler."""
 
-    def __init__(self, scheduler: VSMScheduler, config: dict):
+    def __init__(self, scheduler: VSMScheduler, config: dict, pid_dir: str):
         super().__init__(daemon=True)
         self.scheduler = scheduler
         self.config = config
+        self.pid_dir = pid_dir
         self.host = config.get("rpc_host", "127.0.0.1")
         self.port = config.get("rpc_port", 8585)
         self.server_socket: socket.socket | None = None
@@ -55,6 +60,9 @@ class SchedulerRPCServer(threading.Thread):
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(1)
+
+        # Signal that the server is ready
+        (self.pid_dir / READY_NAME).touch()
 
         while True:
             try:
