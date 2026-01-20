@@ -3,14 +3,16 @@
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 
 from textual.app import ComposeResult
 from textual.containers import Container, Horizontal, Vertical
 from textual.widgets import Button, DataTable, Static
 
-from ...config import load_config
+from ...config import get_config_path, load_config
 from ...rpc import SchedulerRPCClient
 from ...scheduler import SchedulerState
+from ..screens.log_view_screen import LogViewScreen
 
 
 class SchedulerTab(Container):
@@ -19,6 +21,7 @@ class SchedulerTab(Container):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.rpc_client = SchedulerRPCClient(load_config())
+        self.log_file = get_config_path().parent / "vsm-scheduler.log"
 
     def compose(self) -> ComposeResult:
         """Create the scheduler tab layout."""
@@ -32,6 +35,7 @@ class SchedulerTab(Container):
             yield Button("Start Daemon", id="btn-start-sched", variant="success")
             yield Button("Stop Daemon", id="btn-stop-sched", variant="error")
             yield Button("Refresh", id="btn-refresh-sched")
+            yield Button("View Log", id="btn-view-log")
 
     def on_mount(self) -> None:
         """Initialize scheduler display."""
@@ -161,3 +165,6 @@ class SchedulerTab(Container):
         elif event.button.id == "btn-refresh-sched":
             self.refresh_status()
             self.notify("Scheduler status refreshed.")
+        elif event.button.id == "btn-view-log":
+            self.app.push_screen(LogViewScreen(self.log_file))
+

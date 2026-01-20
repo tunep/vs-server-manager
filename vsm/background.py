@@ -58,21 +58,26 @@ def main():
     logger = setup_logging()
     logger.info("Starting VSM Background Process...")
 
-    # Write PID file
-    write_pid_file()
+    try:
+        # Write PID file
+        write_pid_file()
 
-    config = load_config()
+        config = load_config()
 
-    # Get and configure scheduler
-    scheduler = get_scheduler()
-    scheduler.set_log_callback(lambda msg: logging.getLogger("VSMScheduler").info(msg))
-    scheduler.start(config)
+        # Get and configure scheduler
+        scheduler = get_scheduler()
+        scheduler.set_log_callback(lambda msg: logging.getLogger("VSMScheduler").info(msg))
+        scheduler.start(config)
 
-    # Start RPC server to listen for commands
-    rpc_server = SchedulerRPCServer(scheduler, config)
-    rpc_server.start() # This is a Thread, so it's non-blocking
+        # Start RPC server to listen for commands
+        rpc_server = SchedulerRPCServer(scheduler, config)
+        rpc_server.start()  # This is a Thread, so it's non-blocking
 
-    logger.info("VSM Background Process started successfully.")
+        logger.info("VSM Background Process started successfully.")
+
+    except Exception:
+        logger.critical("An unhandled exception occurred", exc_info=True)
+        sys.exit(1)
 
     def handle_shutdown_signal(signum, frame):
         logger.info(f"Received signal {signum}. Shutting down...")
