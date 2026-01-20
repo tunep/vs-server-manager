@@ -57,9 +57,12 @@ def start_daemon():
         kwargs["creationflags"] = subprocess.DETACHED_PROCESS
         kwargs["close_fds"] = True
     else:
-        # On POSIX, the child process will be orphaned and reparented by init.
-        # We don't need to do a double-fork here.
-        pass
+        # On POSIX, detach from parent's file descriptors to prevent
+        # blocking when started from TUI with piped stdout/stderr
+        kwargs["stdin"] = subprocess.DEVNULL
+        kwargs["stdout"] = subprocess.DEVNULL
+        kwargs["stderr"] = subprocess.DEVNULL
+        kwargs["start_new_session"] = True
 
     try:
         subprocess.Popen(command, **kwargs)
