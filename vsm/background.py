@@ -115,27 +115,31 @@ def main():
     signal.signal(signal.SIGTERM, handle_shutdown_signal)
     signal.signal(signal.SIGINT, handle_shutdown_signal)
 
+    def graceful_shutdown(reason):
+        """Perform graceful shutdown with the given reason."""
+        logger.warning(f"{reason} Shutting down daemon...")
+        rpc_server.stop()
+        scheduler.stop()
+        # Clean up PID and ready files
+        try:
+            (PID_DIR / PID_NAME).unlink(missing_ok=True)
+            (PID_DIR / READY_NAME).unlink(missing_ok=True)
+        except OSError:
+            pass
+        logger.info("Daemon terminated.")
+        sys.exit(0)
+
     # Keep the main thread alive, listening for signals
-    # Also check periodically if source files still exist
+    # Also check periodically if source files or PID file still exist
     try:
         while True:
-            time.sleep(60)
+            time.sleep(10)
+            # Check if PID file has been removed (intentional stop signal)
+            if not (PID_DIR / PID_NAME).exists():
+                graceful_shutdown("PID file was removed.")
             # Check if source files have been removed (e.g., repo was recloned)
             if not check_source_files_exist():
-                logger.warning(
-                    "Source files no longer exist (repo may have been removed). "
-                    "Shutting down daemon..."
-                )
-                rpc_server.stop()
-                scheduler.stop()
-                # Clean up PID and ready files
-                try:
-                    (PID_DIR / PID_NAME).unlink(missing_ok=True)
-                    (PID_DIR / READY_NAME).unlink(missing_ok=True)
-                except OSError:
-                    pass
-                logger.info("Daemon terminated due to missing source files.")
-                sys.exit(0)
+                graceful_shutdown("Source files no longer exist (repo may have been removed).")
     except KeyboardInterrupt:
         pass
 
