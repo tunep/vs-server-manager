@@ -114,11 +114,18 @@ class VSMScheduler:
         world_interval = config.get("world_backup_interval", 1)
         server_interval = config.get("server_backup_interval", 6)
 
-        # Schedule world backups (every N hours at :00), 0 disables
-        if world_interval > 0:
+        # Calculate hours for each backup type
+        server_backup_hours = {h for h in range(0, 24) if h % server_interval == 0}
+        world_backup_hours = {h for h in range(0, 24) if h % world_interval == 0}
+        # World backups only run at hours when server backups don't
+        world_only_hours = world_backup_hours - server_backup_hours
+
+        # Schedule world backups (only at hours without server backups), 0 disables
+        if world_interval > 0 and world_only_hours:
+            world_hours_str = ",".join(str(h) for h in sorted(world_only_hours))
             self._scheduler.add_job(
-                self._world_backup_job,
-                CronTrigger(hour=f"*/{world_interval}", minute=0),
+                self._run_world_backup,
+                CronTrigger(hour=world_hours_str, minute=0),
                 id="world_backup",
                 name="World Backup",
             )
@@ -176,17 +183,6 @@ class VSMScheduler:
             self._log(f"Announced: {message}")
         except Exception as e:
             self._log(f"Failed to announce: {e}")
-
-    def _world_backup_job(self) -> None:
-        """World backup job that skips when server backup is in same hour."""
-        current_hour = datetime.now().hour
-        server_interval = self._config.get("server_backup_interval", 6) if self._config else 6
-
-        if current_hour % server_interval == 0:
-            self._log("Skipping world backup (server backup scheduled this hour)")
-            return
-
-        self._run_world_backup()
 
     def _run_world_backup(self) -> None:
         """Run a world backup."""
