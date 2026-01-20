@@ -197,7 +197,7 @@ class BackupsTab(Container):
         """Perform a server backup without stop/start."""
         self.notify("Creating server backup (this may take a while)...")
         try:
-            await run_blocking(server_backup, config)
+            await run_blocking(server_backup, config, manual=True)
             self.notify("Server backup created", severity="information")
             self.refresh_backups()
         except Exception as e:
@@ -222,7 +222,7 @@ class BackupsTab(Container):
                 status_tab._update_display()
 
             self.notify("Creating server backup (this may take a while)...")
-            await run_blocking(server_backup, config)
+            await run_blocking(server_backup, config, manual=True)
 
             # Set starting state on StatusTab
             if status_tab:

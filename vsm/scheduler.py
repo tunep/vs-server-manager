@@ -114,13 +114,14 @@ class VSMScheduler:
         world_interval = config.get("world_backup_interval", 1)
         server_interval = config.get("server_backup_interval", 6)
 
-        # Schedule world backups (every N hours at :00)
-        self._scheduler.add_job(
-            self._world_backup_job,
-            CronTrigger(hour=f"*/{world_interval}", minute=0),
-            id="world_backup",
-            name="World Backup",
-        )
+        # Schedule world backups (every N hours at :00), 0 disables
+        if world_interval > 0:
+            self._scheduler.add_job(
+                self._world_backup_job,
+                CronTrigger(hour=f"*/{world_interval}", minute=0),
+                id="world_backup",
+                name="World Backup",
+            )
 
         # Schedule server backups (every N hours at :00)
         self._scheduler.add_job(

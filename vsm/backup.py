@@ -23,11 +23,12 @@ def world_backup(config: dict | None = None) -> str:
     return command("genbackup", config)
 
 
-def server_backup(config: dict | None = None) -> str:
+def server_backup(config: dict | None = None, manual: bool = False) -> str:
     """
     Create a full server backup by archiving the data directory.
 
-    Archives {data_path} to {server_path}/backups/backup-YYYYMMDD-HHMMSS.tar.gz
+    Archives {data_path} to {server_path}/backups/<type>-YYYY-MM-DD_HH-MM-SS.tar.gz
+    where <type> is 'manual' or 'scheduled'.
     """
     if config is None:
         config = load_config()
@@ -38,13 +39,14 @@ def server_backup(config: dict | None = None) -> str:
     # Ensure backup directory exists
     backups_path.mkdir(parents=True, exist_ok=True)
 
-    # Generate backup filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    backup_filename = f"backup-{timestamp}.tar.gz"
+    # Generate backup filename with readable timestamp
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    backup_type = "manual" if manual else "scheduled"
+    backup_filename = f"{backup_type}-{timestamp}.tar.gz"
     backup_path = backups_path / backup_filename
 
-    # Create tar.gz archive
-    with tarfile.open(backup_path, "w:gz") as tar:
+    # Create tar.gz archive with fast compression (level 1)
+    with tarfile.open(backup_path, "w:gz", compresslevel=1) as tar:
         tar.add(data_path, arcname=data_path.name)
 
     return f"Server backup created: {backup_path}"
@@ -97,8 +99,14 @@ def prune_old_backups(config: dict | None = None) -> str:
         return "No backups directory found"
 
     # Get all backup files sorted by modification time (newest first)
+    # Match both old (backup-*) and new (manual-*, scheduled-*) naming conventions
+    all_backups = (
+        list(backups_path.glob("backup-*.tar.gz"))
+        + list(backups_path.glob("manual-*.tar.gz"))
+        + list(backups_path.glob("scheduled-*.tar.gz"))
+    )
     backups = sorted(
-        backups_path.glob("backup-*.tar.gz"),
+        all_backups,
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
@@ -125,8 +133,14 @@ def list_backups(config: dict | None = None) -> list[Path]:
     if not backups_path.exists():
         return []
 
+    # Match both old (backup-*) and new (manual-*, scheduled-*) naming conventions
+    all_backups = (
+        list(backups_path.glob("backup-*.tar.gz"))
+        + list(backups_path.glob("manual-*.tar.gz"))
+        + list(backups_path.glob("scheduled-*.tar.gz"))
+    )
     return sorted(
-        backups_path.glob("backup-*.tar.gz"),
+        all_backups,
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
