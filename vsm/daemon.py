@@ -16,6 +16,7 @@ from .rpc import SchedulerRPCClient
 PID_NAME = "vsm-scheduler.pid"
 PID_DIR = get_config_path().parent
 PID_FILE = PID_DIR / PID_NAME
+READY_FILE = PID_DIR / "vsm-scheduler.ready"
 
 
 def get_pid_from_file():
@@ -56,16 +57,27 @@ def start_daemon():
 
     try:
         subprocess.Popen(command, **kwargs)
-        # Give it a moment to start and write its PID file
-        time.sleep(2)
-        if is_daemon_running():
-            print("Daemon started successfully.")
-        else:
-            print("Daemon failed to start. Check the log file for details.", file=sys.stderr)
-            sys.exit(1)
+        # Wait for the daemon to be ready
+        wait_for_ready()
     except Exception as e:
         print(f"Failed to start daemon: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+def wait_for_ready(timeout=10):
+    """Wait for the daemon to create its ready file."""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if READY_FILE.exists() and is_daemon_running():
+            print("Daemon started successfully.")
+            return
+        time.sleep(0.5)
+
+    print("Daemon failed to start. Check the log file for details.", file=sys.stderr)
+    # Clean up if the ready file was never created
+    if not READY_FILE.exists():
+        stop_daemon()
+    sys.exit(1)
 
 
 def stop_daemon():
@@ -95,9 +107,11 @@ def stop_daemon():
     except Exception as e:
         print(f"Error stopping daemon: {e}", file=sys.stderr)
 
-    # Clean up PID file
+    # Clean up PID and ready files
     if PID_FILE.exists():
         PID_FILE.unlink()
+    if READY_FILE.exists():
+        READY_FILE.unlink()
 
 
 def main():
