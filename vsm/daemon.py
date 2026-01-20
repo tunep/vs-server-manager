@@ -42,6 +42,12 @@ def start_daemon():
         print("Daemon is already running.", file=sys.stderr)
         sys.exit(1)
 
+    # Clean up stale files from previous runs before starting
+    if READY_FILE.exists():
+        READY_FILE.unlink()
+    if PID_FILE.exists():
+        PID_FILE.unlink()
+
     print("Starting VSM Scheduler Daemon in the background...")
 
     command = [sys.executable, "-m", "vsm.background"]
