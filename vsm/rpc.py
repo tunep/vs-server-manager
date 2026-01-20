@@ -53,6 +53,12 @@ class SchedulerRPCServer(threading.Thread):
                 if job.get("next_run_time"):
                     job["next_run_time"] = job["next_run_time"].isoformat()
             return jobs
+
+        @self.rpc_server.method(name="advance_jobs")
+        def advance_jobs(minutes: int = 1) -> dict:
+            """Advance all jobs by the specified number of minutes."""
+            count = self.scheduler.advance_jobs(minutes)
+            return {"advanced": count}
         
     def run(self):
         """Start the RPC server."""
@@ -148,3 +154,10 @@ class SchedulerRPCClient:
                 except (ValueError, TypeError):
                     job["next_run_time"] = None
         return jobs
+
+    def advance_jobs(self, minutes: int = 1) -> dict:
+        """Advance all jobs by the specified number of minutes."""
+        response = self._send_request("advance_jobs", {"minutes": minutes})
+        if "error" in response:
+            return response
+        return response.get("result", {})

@@ -34,6 +34,7 @@ class SchedulerTab(Container):
         with Horizontal(id="scheduler-controls"):
             yield Button("Start Daemon", id="btn-start-sched", variant="success")
             yield Button("Stop Daemon", id="btn-stop-sched", variant="error")
+            yield Button("Advance 1m", id="btn-advance-jobs", variant="warning")
             yield Button("Refresh", id="btn-refresh-sched")
             yield Button("View Log", id="btn-view-log")
 
@@ -162,6 +163,14 @@ class SchedulerTab(Container):
         elif event.button.id == "btn-stop-sched":
             self.notify("Attempting to stop daemon...")
             self._run_command(["stop"])
+        elif event.button.id == "btn-advance-jobs":
+            result = self.rpc_client.advance_jobs(1)
+            if result.get("error"):
+                self.notify(f"Failed to advance jobs: {result['error'].get('message', 'Unknown error')}", severity="error")
+            else:
+                count = result.get("advanced", 0)
+                self.notify(f"Advanced {count} job(s) by 1 minute.")
+            self.refresh_status()
         elif event.button.id == "btn-refresh-sched":
             self.refresh_status()
             self.notify("Scheduler status refreshed.")

@@ -86,6 +86,20 @@ class VSMScheduler:
             jobs.append(job_info)
         return jobs
 
+    def advance_jobs(self, minutes: int = 1) -> int:
+        """Advance all jobs by the specified number of minutes. Returns count of modified jobs."""
+        if self._scheduler is None:
+            return 0
+
+        count = 0
+        for job in self._scheduler.get_jobs():
+            if job.next_run_time:
+                new_time = job.next_run_time - timedelta(minutes=minutes)
+                job.modify(next_run_time=new_time)
+                self._log(f"Advanced job '{job.name}' to {new_time}")
+                count += 1
+        return count
+
     def start(self, config: dict | None = None) -> None:
         """Start the scheduler with backup jobs."""
         if self._scheduler is not None and self._scheduler.running:
