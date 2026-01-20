@@ -86,7 +86,7 @@ class SchedulerRPCServer(threading.Thread):
 
                     logger.info(f"RPC server received: {data.decode()}")
                     # Process the request using the openrpc server
-                    response_json = self.rpc_server.handle(data.decode())
+                    response_json = self.rpc_server.process_request(data.decode())
                     logger.info(f"RPC server response: {response_json}")
                     if response_json:
                         conn.sendall(response_json.encode())
