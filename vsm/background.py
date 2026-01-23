@@ -74,6 +74,14 @@ def check_source_files_exist():
     return all(f.exists() for f in critical_files)
 
 
+def get_config_mtime() -> float:
+    """Get the modification time of the config file."""
+    config_path = get_config_path()
+    if config_path.exists():
+        return config_path.stat().st_mtime
+    return 0.0
+
+
 def main():
     """Main function for the background process."""
     logger = setup_logging()
@@ -129,6 +137,17 @@ def main():
         logger.info("Daemon terminated.")
         sys.exit(0)
 
+    def reload_scheduler_config():
+        """Reload the scheduler with updated config."""
+        logger.info("Config file changed, reloading scheduler...")
+        new_config = load_config()
+        scheduler.stop()
+        scheduler.start(new_config)
+        logger.info("Scheduler reloaded with new config.")
+
+    # Track config file modification time
+    config_mtime = get_config_mtime()
+
     # Keep the main thread alive, listening for signals
     # Also check periodically if source files or PID file still exist
     try:
@@ -140,6 +159,11 @@ def main():
             # Check if source files have been removed (e.g., repo was recloned)
             if not check_source_files_exist():
                 graceful_shutdown("Source files no longer exist (repo may have been removed).")
+            # Check if config file has been modified
+            new_mtime = get_config_mtime()
+            if new_mtime > config_mtime:
+                config_mtime = new_mtime
+                reload_scheduler_config()
     except KeyboardInterrupt:
         pass
 

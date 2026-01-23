@@ -199,7 +199,7 @@ class SchedulerTab(Container):
         def on_settings_closed(changed: bool) -> None:
             if changed:
                 self._update_intervals()
-                self.notify("Backup settings saved. Restart daemon for changes to take effect.")
+                self.notify("Backup settings saved. Daemon will reload automatically.")
 
         self.app.push_screen(BackupSettingsScreen(), on_settings_closed)
 
