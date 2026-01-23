@@ -29,6 +29,7 @@ class SchedulerTab(Container):
             yield Static("SCHEDULER DAEMON", classes="panel-title")
             yield Static("Status: [dim]Loading...[/dim]", id="sched-status")
             yield Static("Next backup: [dim]--[/dim]", id="sched-next")
+            yield Static("", id="sched-intervals")
         yield Static("SCHEDULED JOBS", classes="panel-title")
         yield DataTable(id="scheduler-jobs")
         with Horizontal(id="scheduler-controls"):
@@ -41,8 +42,23 @@ class SchedulerTab(Container):
         """Initialize scheduler display."""
         table = self.query_one("#scheduler-jobs", DataTable)
         table.add_columns("Job", "Trigger", "Next Run")
+        self._update_intervals()
         self.refresh_status()
         self.set_interval(1, self.refresh_status)
+
+    def _update_intervals(self) -> None:
+        """Update the backup intervals display from config."""
+        config = load_config()
+        world_interval = config.get("world_backup_interval", 1)
+        server_interval = config.get("server_backup_interval", 6)
+
+        world_str = "Disabled" if world_interval == 0 else f"{world_interval} hours"
+        server_str = "Disabled" if server_interval == 0 else f"{server_interval} hours"
+
+        intervals_widget = self.query_one("#sched-intervals", Static)
+        intervals_widget.update(
+            f"World backup: [cyan]{world_str}[/cyan]  |  Server backup: [cyan]{server_str}[/cyan]"
+        )
 
     def refresh_status(self) -> None:
         """Refresh scheduler status via RPC."""
