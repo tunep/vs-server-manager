@@ -52,8 +52,8 @@ class SchedulerTab(Container):
         world_interval = config.get("world_backup_interval", 1)
         server_interval = config.get("server_backup_interval", 6)
 
-        world_str = "Disabled" if world_interval == 0 else f"{world_interval} hours"
-        server_str = "Disabled" if server_interval == 0 else f"{server_interval} hours"
+        world_str = "Disabled" if world_interval == 0 else f"Every {world_interval} hours"
+        server_str = "Disabled" if server_interval == 0 else f"Every {server_interval} hours"
 
         intervals_widget = self.query_one("#sched-intervals", Static)
         intervals_widget.update(
