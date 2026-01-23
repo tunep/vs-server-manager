@@ -12,6 +12,7 @@ from textual.widgets import Button, DataTable, Static
 from ...config import get_config_path, load_config
 from ...rpc import SchedulerRPCClient
 from ...scheduler import SchedulerState
+from ..screens.backup_settings_screen import BackupSettingsScreen
 from ..screens.log_view_screen import LogViewScreen
 
 
@@ -36,6 +37,7 @@ class SchedulerTab(Container):
             yield Button("Start Daemon", id="btn-start-sched", variant="success")
             yield Button("Stop Daemon", id="btn-stop-sched", variant="error")
             yield Button("Postpone 5m", id="btn-advance-jobs", variant="warning")
+            yield Button("Settings", id="btn-settings")
             yield Button("View Log", id="btn-view-log")
 
     def on_mount(self) -> None:
@@ -186,6 +188,18 @@ class SchedulerTab(Container):
                 count = result.get("advanced", 0)
                 self.notify(f"Postponed {count} job(s) by 5 minutes.")
             self.refresh_status()
+        elif event.button.id == "btn-settings":
+            self._open_settings()
         elif event.button.id == "btn-view-log":
             self.app.push_screen(LogViewScreen(self.log_file))
+
+    def _open_settings(self) -> None:
+        """Open the backup settings screen."""
+
+        def on_settings_closed(changed: bool) -> None:
+            if changed:
+                self._update_intervals()
+                self.notify("Backup settings saved. Restart daemon for changes to take effect.")
+
+        self.app.push_screen(BackupSettingsScreen(), on_settings_closed)
 

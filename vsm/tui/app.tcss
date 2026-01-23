@@ -283,6 +283,44 @@ ConfirmScreen {
     margin: 0 1;
 }
 
+/* Backup Settings Screen */
+BackupSettingsScreen {
+    align: center middle;
+}
+
+#backup-settings-dialog {
+    width: 45;
+    height: auto;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#backup-settings-dialog .title {
+    margin-bottom: 1;
+    text-align: center;
+}
+
+#backup-settings-dialog .setting-label {
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+#backup-settings-dialog Select {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+#backup-settings-buttons {
+    height: auto;
+    padding-top: 1;
+    align: center middle;
+}
+
+#backup-settings-buttons Button {
+    margin: 0 1;
+}
+
 /* General button styling */
 Button {
     width: auto;
