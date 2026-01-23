@@ -9,7 +9,7 @@ from ...config import load_config, save_config
 
 
 # Server backup interval options (in hours)
-SERVER_BACKUP_OPTIONS = [0, 4, 8, 12, 24]
+SERVER_BACKUP_OPTIONS = [0, 4, 6, 8, 12, 24]
 
 
 def get_divisors(n: int) -> list[int]:
