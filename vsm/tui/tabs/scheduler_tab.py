@@ -34,8 +34,7 @@ class SchedulerTab(Container):
         with Horizontal(id="scheduler-controls"):
             yield Button("Start Daemon", id="btn-start-sched", variant="success")
             yield Button("Stop Daemon", id="btn-stop-sched", variant="error")
-            yield Button("Advance 1m", id="btn-advance-jobs", variant="warning")
-            yield Button("Refresh", id="btn-refresh-sched")
+            yield Button("Postpone 5m", id="btn-advance-jobs", variant="warning")
             yield Button("View Log", id="btn-view-log")
 
     def on_mount(self) -> None:
@@ -43,7 +42,7 @@ class SchedulerTab(Container):
         table = self.query_one("#scheduler-jobs", DataTable)
         table.add_columns("Job", "Trigger", "Next Run")
         self.refresh_status()
-        self.set_interval(10, self.refresh_status)
+        self.set_interval(1, self.refresh_status)
 
     def refresh_status(self) -> None:
         """Refresh scheduler status via RPC."""
@@ -164,16 +163,13 @@ class SchedulerTab(Container):
             self.notify("Attempting to stop daemon...")
             self._run_command(["stop"])
         elif event.button.id == "btn-advance-jobs":
-            result = self.rpc_client.advance_jobs(1)
+            result = self.rpc_client.advance_jobs(5)
             if result.get("error"):
-                self.notify(f"Failed to advance jobs: {result['error'].get('message', 'Unknown error')}", severity="error")
+                self.notify(f"Failed to postpone jobs: {result['error'].get('message', 'Unknown error')}", severity="error")
             else:
                 count = result.get("advanced", 0)
-                self.notify(f"Advanced {count} job(s) by 1 minute.")
+                self.notify(f"Postponed {count} job(s) by 5 minutes.")
             self.refresh_status()
-        elif event.button.id == "btn-refresh-sched":
-            self.refresh_status()
-            self.notify("Scheduler status refreshed.")
         elif event.button.id == "btn-view-log":
             self.app.push_screen(LogViewScreen(self.log_file))
 

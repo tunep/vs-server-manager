@@ -114,9 +114,17 @@ class VSMScheduler:
         world_interval = config.get("world_backup_interval", 1)
         server_interval = config.get("server_backup_interval", 6)
 
-        # Calculate hours for each backup type
-        server_backup_hours = {h for h in range(0, 24) if h % server_interval == 0}
-        world_backup_hours = {h for h in range(0, 24) if h % world_interval == 0}
+        # Calculate hours for each backup type (0 means disabled)
+        server_backup_hours = (
+            {h for h in range(0, 24) if h % server_interval == 0}
+            if server_interval > 0
+            else set()
+        )
+        world_backup_hours = (
+            {h for h in range(0, 24) if h % world_interval == 0}
+            if world_interval > 0
+            else set()
+        )
         # World backups only run at hours when server backups don't
         world_only_hours = world_backup_hours - server_backup_hours
 
@@ -130,24 +138,25 @@ class VSMScheduler:
                 name="World Backup",
             )
 
-        # Schedule server backups (every N hours at :00)
-        self._scheduler.add_job(
-            self._run_server_backup,
-            CronTrigger(hour=f"*/{server_interval}", minute=0),
-            id="server_backup",
-            name="Server Backup",
-        )
+        # Schedule server backups (every N hours at :00), 0 disables
+        if server_interval > 0:
+            self._scheduler.add_job(
+                self._run_server_backup,
+                CronTrigger(hour=f"*/{server_interval}", minute=0),
+                id="server_backup",
+                name="Server Backup",
+            )
 
-        # Schedule announcements
-        self._schedule_next_announcements()
+            # Schedule announcements
+            self._schedule_next_announcements()
 
-        # Re-schedule announcements after each server backup
-        self._scheduler.add_job(
-            self._schedule_next_announcements,
-            CronTrigger(hour=f"*/{server_interval}", minute=1),
-            id="reschedule_announcements",
-            name="Reschedule Announcements",
-        )
+            # Re-schedule announcements after each server backup
+            self._scheduler.add_job(
+                self._schedule_next_announcements,
+                CronTrigger(hour=f"*/{server_interval}", minute=1),
+                id="reschedule_announcements",
+                name="Reschedule Announcements",
+            )
 
         self._scheduler.start()
         self._log("Scheduler started")
@@ -241,6 +250,8 @@ class VSMScheduler:
             return
 
         server_interval = self._config.get("server_backup_interval", 6)
+        if server_interval <= 0:
+            return
         now = datetime.now()
 
         # Calculate next server backup time
