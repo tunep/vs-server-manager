@@ -24,10 +24,14 @@ def get_divisors(n: int) -> list[int]:
 
 
 def get_world_backup_options(server_interval: int) -> list[int]:
-    """Get world backup interval options based on server backup interval."""
+    """Get world backup interval options based on server backup interval.
+
+    World backups should be divisors of server backup interval so they align.
+    If server backups are disabled, world backups can run at any common interval.
+    """
     if server_interval == 0:
         # If server backups disabled, allow common intervals
-        return [0, 1, 2, 3, 4, 6, 8, 12]
+        return [0, 1, 2, 3, 4, 6, 8, 12, 24]
     return [0] + get_divisors(server_interval)
 
 
