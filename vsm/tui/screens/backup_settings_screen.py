@@ -68,8 +68,8 @@ def generate_timeline(
 
     timeline_bar = "".join(timeline_chars)
 
-    # Time axis with markers at 0, 6, 12, 18, 24
-    time_axis = "0     6     12    18    24"
+    # Time axis with markers at 0, 4, 8, ... 24 (8 chars between each)
+    time_axis = "0       4       8       12      16      20      24"
 
     # Build legend based on what's shown
     legend_parts = []

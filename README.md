@@ -124,8 +124,8 @@ The dialog includes a 24-hour timeline preview showing when backups will run:
 
 ```
 Schedule Preview (24h):
-0     6     12    18    24
-██··▓▓··▓▓··██··▓▓··▓▓··
+0       4       8       12      16      20      24
+████····▓▓▓▓····▓▓▓▓····████····▓▓▓▓····▓▓▓▓····
 [██ Server+World]  [▓▓ World only]
 ```
 
