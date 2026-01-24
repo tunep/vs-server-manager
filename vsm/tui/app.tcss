@@ -289,7 +289,7 @@ BackupSettingsScreen {
 }
 
 #backup-settings-dialog {
-    width: 45;
+    width: 56;
     height: auto;
     border: thick $primary;
     background: $surface;
@@ -326,6 +326,29 @@ BackupSettingsScreen {
     width: 10;
     text-align: center;
     content-align: center middle;
+}
+
+/* Timeline preview */
+#timeline-container {
+    height: auto;
+    margin-top: 1;
+    margin-bottom: 1;
+}
+
+#timeline-axis {
+    height: 1;
+    color: $text-muted;
+}
+
+#timeline-bar {
+    height: 1;
+}
+
+#timeline-legend {
+    height: 1;
+    margin-top: 1;
+    text-align: center;
+    color: $text-muted;
 }
 
 #backup-settings-buttons {
