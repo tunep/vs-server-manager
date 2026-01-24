@@ -47,6 +47,7 @@ class BackupSettingsScreen(ModalScreen[bool]):
         config = load_config()
         self.server_interval = config.get("server_backup_interval", 6)
         self.world_interval = config.get("world_backup_interval", 1)
+        self.offset_hours = config.get("backup_offset_hours", 0)
 
     def compose(self) -> ComposeResult:
         """Create the settings dialog layout."""
@@ -76,6 +77,12 @@ class BackupSettingsScreen(ModalScreen[bool]):
                 allow_blank=False,
             )
 
+            yield Static("Schedule Offset:", classes="setting-label")
+            with Horizontal(id="offset-controls"):
+                yield Button("-", id="offset-minus", classes="offset-btn")
+                yield Static(self._format_offset(), id="offset-value")
+                yield Button("+", id="offset-plus", classes="offset-btn")
+
             with Horizontal(id="backup-settings-buttons"):
                 yield Button("Save", id="save-btn", variant="success")
                 yield Button("Cancel", id="cancel-btn", variant="default")
@@ -88,6 +95,23 @@ class BackupSettingsScreen(ModalScreen[bool]):
             return "Every 1 hour"
         else:
             return f"Every {hours} hours"
+
+    def _format_offset(self) -> str:
+        """Format offset for display."""
+        if self.offset_hours == 1:
+            return "1 hour"
+        return f"{self.offset_hours} hours"
+
+    def _get_max_offset(self) -> int:
+        """Get the maximum allowed offset based on server interval."""
+        if self.server_interval <= 0:
+            return 23  # Max offset when disabled
+        return self.server_interval - 1
+
+    def _update_offset_display(self) -> None:
+        """Update the offset display."""
+        offset_widget = self.query_one("#offset-value", Static)
+        offset_widget.update(self._format_offset())
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """Handle select changes."""
@@ -113,6 +137,12 @@ class BackupSettingsScreen(ModalScreen[bool]):
                 self.world_interval = valid_values[1] if len(valid_values) > 1 else 0
             world_select.value = self.world_interval
 
+            # Clamp offset to new max
+            max_offset = self._get_max_offset()
+            if self.offset_hours > max_offset:
+                self.offset_hours = max_offset
+                self._update_offset_display()
+
         elif event.select.id == "world-interval-select":
             if event.value != Select.BLANK:
                 self.world_interval = event.value
@@ -124,10 +154,20 @@ class BackupSettingsScreen(ModalScreen[bool]):
             config = load_config()
             config["server_backup_interval"] = self.server_interval
             config["world_backup_interval"] = self.world_interval
+            config["backup_offset_hours"] = self.offset_hours
             save_config(config)
             self.dismiss(True)
         elif event.button.id == "cancel-btn":
             self.dismiss(False)
+        elif event.button.id == "offset-minus":
+            if self.offset_hours > 0:
+                self.offset_hours -= 1
+                self._update_offset_display()
+        elif event.button.id == "offset-plus":
+            max_offset = self._get_max_offset()
+            if self.offset_hours < max_offset:
+                self.offset_hours += 1
+                self._update_offset_display()
 
     def action_cancel(self) -> None:
         """Cancel and close the screen."""

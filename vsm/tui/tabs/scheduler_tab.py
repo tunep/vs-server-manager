@@ -36,9 +36,8 @@ class SchedulerTab(Container):
         with Horizontal(id="scheduler-controls"):
             yield Button("Start Daemon", id="btn-start-sched", variant="success")
             yield Button("Stop Daemon", id="btn-stop-sched", variant="error")
-            yield Button("Postpone 5m", id="btn-advance-jobs", variant="warning")
-            yield Button("Settings", id="btn-settings")
-            yield Button("View Log", id="btn-view-log")
+            yield Button("Settings", id="btn-settings", classes="secondary")
+            yield Button("View Log", id="btn-view-log", classes="secondary")
 
     def on_mount(self) -> None:
         """Initialize scheduler display."""
@@ -180,14 +179,6 @@ class SchedulerTab(Container):
         elif event.button.id == "btn-stop-sched":
             self.notify("Attempting to stop daemon...")
             self._run_command(["stop"])
-        elif event.button.id == "btn-advance-jobs":
-            result = self.rpc_client.advance_jobs(5)
-            if result.get("error"):
-                self.notify(f"Failed to postpone jobs: {result['error'].get('message', 'Unknown error')}", severity="error")
-            else:
-                count = result.get("advanced", 0)
-                self.notify(f"Postponed {count} job(s) by 5 minutes.")
-            self.refresh_status()
         elif event.button.id == "btn-settings":
             self._open_settings()
         elif event.button.id == "btn-view-log":

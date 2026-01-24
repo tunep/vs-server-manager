@@ -311,6 +311,23 @@ BackupSettingsScreen {
     margin-bottom: 1;
 }
 
+#offset-controls {
+    height: auto;
+    align: center middle;
+    margin-bottom: 1;
+}
+
+#offset-controls .offset-btn {
+    width: 5;
+    min-width: 5;
+}
+
+#offset-value {
+    width: 10;
+    text-align: center;
+    content-align: center middle;
+}
+
 #backup-settings-buttons {
     height: auto;
     padding-top: 1;
@@ -341,4 +358,8 @@ Button.warning {
 
 Button.error {
     background: $error;
+}
+
+Button.secondary {
+    background: #555555;
 }

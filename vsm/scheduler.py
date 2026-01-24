@@ -113,15 +113,17 @@ class VSMScheduler:
 
         world_interval = config.get("world_backup_interval", 1)
         server_interval = config.get("server_backup_interval", 6)
+        offset_hours = config.get("backup_offset_hours", 0)
 
-        # Calculate hours for each backup type (0 means disabled)
+        # Calculate backup hours based on interval and offset
+        # e.g., server_interval=12, offset=5 -> backups at 5:00 and 17:00
         server_backup_hours = (
-            {h for h in range(0, 24) if h % server_interval == 0}
+            {(offset_hours + i * server_interval) % 24 for i in range(24 // server_interval)}
             if server_interval > 0
             else set()
         )
         world_backup_hours = (
-            {h for h in range(0, 24) if h % world_interval == 0}
+            {(offset_hours + i * world_interval) % 24 for i in range(24 // world_interval)}
             if world_interval > 0
             else set()
         )
@@ -138,11 +140,12 @@ class VSMScheduler:
                 name="World Backup",
             )
 
-        # Schedule server backups (every N hours at :00), 0 disables
+        # Schedule server backups at calculated hours, 0 disables
         if server_interval > 0:
+            server_hours_str = ",".join(str(h) for h in sorted(server_backup_hours))
             self._scheduler.add_job(
                 self._run_server_backup,
-                CronTrigger(hour=f"*/{server_interval}", minute=0),
+                CronTrigger(hour=server_hours_str, minute=0),
                 id="server_backup",
                 name="Server Backup",
             )
@@ -153,7 +156,7 @@ class VSMScheduler:
             # Re-schedule announcements after each server backup
             self._scheduler.add_job(
                 self._schedule_next_announcements,
-                CronTrigger(hour=f"*/{server_interval}", minute=1),
+                CronTrigger(hour=server_hours_str, minute=1),
                 id="reschedule_announcements",
                 name="Reschedule Announcements",
             )
@@ -250,15 +253,28 @@ class VSMScheduler:
             return
 
         server_interval = self._config.get("server_backup_interval", 6)
+        offset_hours = self._config.get("backup_offset_hours", 0)
         if server_interval <= 0:
             return
         now = datetime.now()
 
-        # Calculate next server backup time
-        current_hour = now.hour
-        next_backup_hour = ((current_hour // server_interval + 1) * server_interval) % 24
+        # Calculate backup hours with offset
+        backup_hours = sorted(
+            (offset_hours + i * server_interval) % 24
+            for i in range(24 // server_interval)
+        )
 
-        if next_backup_hour <= current_hour:
+        # Find the next backup hour
+        current_hour = now.hour
+        next_backup_hour = None
+        for hour in backup_hours:
+            if hour > current_hour:
+                next_backup_hour = hour
+                break
+
+        # If no backup hour found today, use first backup hour tomorrow
+        if next_backup_hour is None:
+            next_backup_hour = backup_hours[0]
             next_backup = now.replace(
                 hour=next_backup_hour, minute=0, second=0, microsecond=0
             ) + timedelta(days=1)
