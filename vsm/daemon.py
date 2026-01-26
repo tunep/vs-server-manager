@@ -17,6 +17,7 @@ PID_NAME = "vsm-scheduler.pid"
 PID_DIR = get_config_path().parent
 PID_FILE = PID_DIR / PID_NAME
 READY_FILE = PID_DIR / "vsm-scheduler.ready"
+LOG_FILE = PID_DIR / "vsm-scheduler.log"
 
 
 def get_pid_from_file():
@@ -47,6 +48,9 @@ def start_daemon():
         READY_FILE.unlink()
     if PID_FILE.exists():
         PID_FILE.unlink()
+    # Clear the log file for a fresh start
+    if LOG_FILE.exists():
+        LOG_FILE.write_text("")
 
     print("Starting VSM Scheduler Daemon in the background...")
 
