@@ -8,6 +8,7 @@ DEFAULT_CONFIG = {
     "server_path": "~/server",
     "world_backup_interval": 1,
     "server_backup_interval": 6,
+    "backup_offset_hours": 0,
     "max_server_backups": 7,
 }
 

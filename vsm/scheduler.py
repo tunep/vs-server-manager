@@ -86,6 +86,20 @@ class VSMScheduler:
             jobs.append(job_info)
         return jobs
 
+    def advance_jobs(self, minutes: int = 1) -> int:
+        """Advance all jobs by the specified number of minutes. Returns count of modified jobs."""
+        if self._scheduler is None:
+            return 0
+
+        count = 0
+        for job in self._scheduler.get_jobs():
+            if job.next_run_time:
+                new_time = job.next_run_time - timedelta(minutes=minutes)
+                job.modify(next_run_time=new_time)
+                self._log(f"Advanced job '{job.name}' to {new_time}")
+                count += 1
+        return count
+
     def start(self, config: dict | None = None) -> None:
         """Start the scheduler with backup jobs."""
         if self._scheduler is not None and self._scheduler.running:
@@ -99,33 +113,53 @@ class VSMScheduler:
 
         world_interval = config.get("world_backup_interval", 1)
         server_interval = config.get("server_backup_interval", 6)
+        offset_hours = config.get("backup_offset_hours", 0)
 
-        # Schedule world backups (every N hours at :00)
-        self._scheduler.add_job(
-            self._world_backup_job,
-            CronTrigger(hour=f"*/{world_interval}", minute=0),
-            id="world_backup",
-            name="World Backup",
+        # Calculate backup hours based on interval and offset
+        # e.g., server_interval=12, offset=5 -> backups at 5:00 and 17:00
+        server_backup_hours = (
+            {(offset_hours + i * server_interval) % 24 for i in range(24 // server_interval)}
+            if server_interval > 0
+            else set()
         )
-
-        # Schedule server backups (every N hours at :00)
-        self._scheduler.add_job(
-            self._run_server_backup,
-            CronTrigger(hour=f"*/{server_interval}", minute=0),
-            id="server_backup",
-            name="Server Backup",
+        world_backup_hours = (
+            {(offset_hours + i * world_interval) % 24 for i in range(24 // world_interval)}
+            if world_interval > 0
+            else set()
         )
+        # World backups only run at hours when server backups don't
+        world_only_hours = world_backup_hours - server_backup_hours
 
-        # Schedule announcements
-        self._schedule_next_announcements()
+        # Schedule world backups (only at hours without server backups), 0 disables
+        if world_interval > 0 and world_only_hours:
+            world_hours_str = ",".join(str(h) for h in sorted(world_only_hours))
+            self._scheduler.add_job(
+                self._run_world_backup,
+                CronTrigger(hour=world_hours_str, minute=0),
+                id="world_backup",
+                name="World Backup",
+            )
 
-        # Re-schedule announcements after each server backup
-        self._scheduler.add_job(
-            self._schedule_next_announcements,
-            CronTrigger(hour=f"*/{server_interval}", minute=1),
-            id="reschedule_announcements",
-            name="Reschedule Announcements",
-        )
+        # Schedule server backups at calculated hours, 0 disables
+        if server_interval > 0:
+            server_hours_str = ",".join(str(h) for h in sorted(server_backup_hours))
+            self._scheduler.add_job(
+                self._run_server_backup,
+                CronTrigger(hour=server_hours_str, minute=0),
+                id="server_backup",
+                name="Server Backup",
+            )
+
+            # Schedule announcements
+            self._schedule_next_announcements()
+
+            # Re-schedule announcements after each server backup
+            self._scheduler.add_job(
+                self._schedule_next_announcements,
+                CronTrigger(hour=server_hours_str, minute=1),
+                id="reschedule_announcements",
+                name="Reschedule Announcements",
+            )
 
         self._scheduler.start()
         self._log("Scheduler started")
@@ -161,17 +195,6 @@ class VSMScheduler:
             self._log(f"Announced: {message}")
         except Exception as e:
             self._log(f"Failed to announce: {e}")
-
-    def _world_backup_job(self) -> None:
-        """World backup job that skips when server backup is in same hour."""
-        current_hour = datetime.now().hour
-        server_interval = self._config.get("server_backup_interval", 6) if self._config else 6
-
-        if current_hour % server_interval == 0:
-            self._log("Skipping world backup (server backup scheduled this hour)")
-            return
-
-        self._run_world_backup()
 
     def _run_world_backup(self) -> None:
         """Run a world backup."""
@@ -230,13 +253,28 @@ class VSMScheduler:
             return
 
         server_interval = self._config.get("server_backup_interval", 6)
+        offset_hours = self._config.get("backup_offset_hours", 0)
+        if server_interval <= 0:
+            return
         now = datetime.now()
 
-        # Calculate next server backup time
-        current_hour = now.hour
-        next_backup_hour = ((current_hour // server_interval + 1) * server_interval) % 24
+        # Calculate backup hours with offset
+        backup_hours = sorted(
+            (offset_hours + i * server_interval) % 24
+            for i in range(24 // server_interval)
+        )
 
-        if next_backup_hour <= current_hour:
+        # Find the next backup hour
+        current_hour = now.hour
+        next_backup_hour = None
+        for hour in backup_hours:
+            if hour > current_hour:
+                next_backup_hour = hour
+                break
+
+        # If no backup hour found today, use first backup hour tomorrow
+        if next_backup_hour is None:
+            next_backup_hour = backup_hours[0]
             next_backup = now.replace(
                 hour=next_backup_hour, minute=0, second=0, microsecond=0
             ) + timedelta(days=1)

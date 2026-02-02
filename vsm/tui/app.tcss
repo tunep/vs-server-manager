@@ -283,6 +283,84 @@ ConfirmScreen {
     margin: 0 1;
 }
 
+/* Backup Settings Screen */
+BackupSettingsScreen {
+    align: center middle;
+}
+
+#backup-settings-dialog {
+    width: 56;
+    height: auto;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#backup-settings-dialog .title {
+    margin-bottom: 1;
+    text-align: center;
+}
+
+#backup-settings-dialog .setting-label {
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+#backup-settings-dialog Select {
+    width: 100%;
+    margin-bottom: 1;
+}
+
+#offset-controls {
+    height: auto;
+    align: center middle;
+    margin-bottom: 1;
+}
+
+#offset-controls .offset-btn {
+    width: 5;
+    min-width: 5;
+}
+
+#offset-value {
+    width: 10;
+    text-align: center;
+    content-align: center middle;
+}
+
+/* Timeline preview */
+#timeline-container {
+    height: auto;
+    margin-top: 1;
+    margin-bottom: 1;
+}
+
+#timeline-axis {
+    height: 1;
+    color: $text-muted;
+}
+
+#timeline-bar {
+    height: 1;
+}
+
+#timeline-legend {
+    height: 1;
+    margin-top: 1;
+    text-align: center;
+    color: $text-muted;
+}
+
+#backup-settings-buttons {
+    height: auto;
+    padding-top: 1;
+    align: center middle;
+}
+
+#backup-settings-buttons Button {
+    margin: 0 1;
+}
+
 /* General button styling */
 Button {
     width: auto;
@@ -303,4 +381,8 @@ Button.warning {
 
 Button.error {
     background: $error;
+}
+
+Button.secondary {
+    background: #555555;
 }
