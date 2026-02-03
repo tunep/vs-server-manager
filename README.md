@@ -37,6 +37,8 @@ A Python TUI for managing a Vintage Story dedicated server on Linux.
 
 Requires Python 3.10+
 
+**Prerequisites:** Set up a Vintage Story dedicated server on Linux following the [official guide](https://wiki.vintagestory.at/Guide:_Dedicated_Server#Dedicated_server_on_Linux). VSM's default configuration uses the paths from that guide, but they can be changed by launching VSM and pressing `c` to edit the config.
+
 ```bash
 # Clone the repository
 git clone https://github.com/tunep/vintage-story-backup.git
