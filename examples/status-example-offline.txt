@@ -1,2 +1,0 @@
-Data path is /var/vintagestory/data
-VintagestoryServer.dll is not running.

@@ -1,8 +1,27 @@
 # Vintage Story Server Manager (VSM)
 
-A Python TUI for managing a Vintage Story dedicated server.
+> **⚠️ This project is no longer actively maintained.**
 
-> **Platform Support:** Currently Linux only. Windows support planned.
+A Python TUI for managing a Vintage Story dedicated server on Linux.
+
+> **Platform:** Linux only. Tested on Vintage Story 1.21.5.
+
+## Screenshots
+
+### Status Tab
+![Status Tab](Screenshots/Status.svg)
+
+### Logs Tab
+![Logs Tab](Screenshots/Logs.svg)
+
+### Backups Tab
+![Backups Tab](Screenshots/Backups.svg)
+
+### Scheduler Tab
+![Scheduler Tab](Screenshots/Scheduler.svg)
+
+### Console Tab
+![Console Tab](Screenshots/Console.svg)
 
 ## Features
 
@@ -16,12 +35,18 @@ A Python TUI for managing a Vintage Story dedicated server.
 
 ## Installation
 
-Requires Python 3.10+
+### Requirements
+
+- Python 3.10 or higher
+- pip (usually included with Python)
+- A Vintage Story dedicated server set up on Linux following the [official guide](https://wiki.vintagestory.at/Guide:_Dedicated_Server#Dedicated_server_on_Linux)
+
+VSM's default configuration uses the paths from the official guide, but they can be changed by launching VSM and pressing `c` to edit the config.
 
 ```bash
 # Clone the repository
-git clone https://github.com/tunep/vintage-story-backup.git
-cd vintage-story-backup
+git clone https://github.com/tunep/vs-server-manager.git
+cd vs-server-manager
 
 # Install
 pip install -e .
@@ -34,19 +59,7 @@ vsm
 
 Launch with `vsm` to open the terminal user interface.
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  Vintage Story Server Manager                             [v0.2] │
-├──────────────────────────────────────────────────────────────────┤
-│  Status │ Logs │ Backups │ Scheduler │ Console                   │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Tab content displayed here                                      │
-│                                                                  │
-├──────────────────────────────────────────────────────────────────┤
-│  q:Quit  c:Config  r:Refresh                                     │
-└──────────────────────────────────────────────────────────────────┘
-```
+**Note:** VSM is only an interface for interacting with a Vintage Story server. It is entirely independent of the server process. Closing VSM will not stop a running server.
 
 ### Tabs
 
@@ -120,18 +133,7 @@ The Settings button opens a modal to configure backup schedules:
 - **World Backup Interval** - How often to run world backups (must divide evenly into server interval)
 - **Schedule Offset** - Shift all backup times by N hours (e.g., offset of 2 runs backups at 2:00, 8:00, 14:00 instead of 0:00, 6:00, 12:00)
 
-The dialog includes a 24-hour timeline preview showing when backups will run:
-
-```
-Schedule Preview (24h):
-0       4       8       12      16      20      24
-████····▓▓▓▓····▓▓▓▓····████····▓▓▓▓····▓▓▓▓····
-[██ Server+World]  [▓▓ World only]
-```
-
-- Cyan `██` = Server backup hours (also runs world backup)
-- Green `▓▓` = World-only backup hours
-- The timeline updates live as you adjust settings
+The dialog includes a 24-hour timeline preview showing when backups will run.
 
 ### Announcements
 
@@ -181,20 +183,4 @@ Press `c` in the TUI to view current configuration.
 
 ## Server Commands
 
-Use the **Console** tab to send commands to the server:
-
-| Command | Description |
-|---------|-------------|
-| `announce <text>` | Broadcast message to all players |
-| `genbackup [filename]` | Create world backup |
-| `list clients` | Show online players |
-
-## Platform Notes
-
-### Linux (Current)
-- Server executable: `{server_path}/server.sh`
-- Default data path: `/var/vintagestory/data`
-
-### Windows (Future)
-- Server executable: `{server_path}/VintagestoryServer.exe`
-- Default data path: `%AppData%/VintagestoryData`
+Use the **Console** tab to send commands to the server. See the [full list of server commands](https://wiki.vintagestory.at/List_of_server_commands) on the Vintage Story wiki.
