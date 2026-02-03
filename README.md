@@ -183,10 +183,4 @@ Press `c` in the TUI to view current configuration.
 
 ## Server Commands
 
-Use the **Console** tab to send commands to the server:
-
-| Command | Description |
-|---------|-------------|
-| `announce <text>` | Broadcast message to all players |
-| `genbackup [filename]` | Create world backup |
-| `list clients` | Show online players |
+Use the **Console** tab to send commands to the server. See the [full list of server commands](https://wiki.vintagestory.at/List_of_server_commands) on the Vintage Story wiki.
