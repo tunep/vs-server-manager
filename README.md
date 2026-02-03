@@ -1,8 +1,27 @@
 # Vintage Story Server Manager (VSM)
 
-A Python TUI for managing a Vintage Story dedicated server.
+A Python TUI for managing a Vintage Story dedicated server on Linux.
 
-> **Platform Support:** Currently Linux only. Windows support planned.
+> **Note:** This project is no longer actively maintained.
+
+> **Platform:** Linux only. Tested on Vintage Story 1.21.5.
+
+## Screenshots
+
+### Status Tab
+![Status Tab](Screenshots/Status.svg)
+
+### Logs Tab
+![Logs Tab](Screenshots/Logs.svg)
+
+### Backups Tab
+![Backups Tab](Screenshots/Backups.svg)
+
+### Scheduler Tab
+![Scheduler Tab](Screenshots/Scheduler.svg)
+
+### Console Tab
+![Console Tab](Screenshots/Console.svg)
 
 ## Features
 
@@ -33,20 +52,6 @@ vsm
 ## TUI Overview
 
 Launch with `vsm` to open the terminal user interface.
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  Vintage Story Server Manager                             [v0.2] │
-├──────────────────────────────────────────────────────────────────┤
-│  Status │ Logs │ Backups │ Scheduler │ Console                   │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Tab content displayed here                                      │
-│                                                                  │
-├──────────────────────────────────────────────────────────────────┤
-│  q:Quit  c:Config  r:Refresh                                     │
-└──────────────────────────────────────────────────────────────────┘
-```
 
 ### Tabs
 
@@ -120,18 +125,7 @@ The Settings button opens a modal to configure backup schedules:
 - **World Backup Interval** - How often to run world backups (must divide evenly into server interval)
 - **Schedule Offset** - Shift all backup times by N hours (e.g., offset of 2 runs backups at 2:00, 8:00, 14:00 instead of 0:00, 6:00, 12:00)
 
-The dialog includes a 24-hour timeline preview showing when backups will run:
-
-```
-Schedule Preview (24h):
-0       4       8       12      16      20      24
-████····▓▓▓▓····▓▓▓▓····████····▓▓▓▓····▓▓▓▓····
-[██ Server+World]  [▓▓ World only]
-```
-
-- Cyan `██` = Server backup hours (also runs world backup)
-- Green `▓▓` = World-only backup hours
-- The timeline updates live as you adjust settings
+The dialog includes a 24-hour timeline preview showing when backups will run.
 
 ### Announcements
 
@@ -188,13 +182,3 @@ Use the **Console** tab to send commands to the server:
 | `announce <text>` | Broadcast message to all players |
 | `genbackup [filename]` | Create world backup |
 | `list clients` | Show online players |
-
-## Platform Notes
-
-### Linux (Current)
-- Server executable: `{server_path}/server.sh`
-- Default data path: `/var/vintagestory/data`
-
-### Windows (Future)
-- Server executable: `{server_path}/VintagestoryServer.exe`
-- Default data path: `%AppData%/VintagestoryData`
