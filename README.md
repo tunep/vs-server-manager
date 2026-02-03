@@ -1,8 +1,8 @@
 # Vintage Story Server Manager (VSM)
 
-A Python TUI for managing a Vintage Story dedicated server on Linux.
+> **⚠️ This project is no longer actively maintained.**
 
-> **Note:** This project is no longer actively maintained.
+A Python TUI for managing a Vintage Story dedicated server on Linux.
 
 > **Platform:** Linux only. Tested on Vintage Story 1.21.5.
 
@@ -35,14 +35,18 @@ A Python TUI for managing a Vintage Story dedicated server on Linux.
 
 ## Installation
 
-Requires Python 3.10+
+### Requirements
 
-**Prerequisites:** Set up a Vintage Story dedicated server on Linux following the [official guide](https://wiki.vintagestory.at/Guide:_Dedicated_Server#Dedicated_server_on_Linux). VSM's default configuration uses the paths from that guide, but they can be changed by launching VSM and pressing `c` to edit the config.
+- Python 3.10 or higher
+- pip (usually included with Python)
+- A Vintage Story dedicated server set up on Linux following the [official guide](https://wiki.vintagestory.at/Guide:_Dedicated_Server#Dedicated_server_on_Linux)
+
+VSM's default configuration uses the paths from the official guide, but they can be changed by launching VSM and pressing `c` to edit the config.
 
 ```bash
 # Clone the repository
-git clone https://github.com/tunep/vintage-story-backup.git
-cd vintage-story-backup
+git clone https://github.com/tunep/vs-server-manager.git
+cd vs-server-manager
 
 # Install
 pip install -e .
@@ -54,6 +58,8 @@ vsm
 ## TUI Overview
 
 Launch with `vsm` to open the terminal user interface.
+
+**Note:** VSM is only an interface for interacting with a Vintage Story server. It is entirely independent of the server process. Closing VSM will not stop a running server.
 
 ### Tabs
 
